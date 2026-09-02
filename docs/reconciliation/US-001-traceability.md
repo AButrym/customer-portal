@@ -1,10 +1,10 @@
 ---
 artifact_type: traceability
 story: US-001
-version: 2
+version: 3
 status: IN_REVIEW
 created_at: 2026-08-31T12:52:00Z
-updated_at: 2026-09-02T14:02:21Z
+updated_at: 2026-09-02T16:10:00Z
 produced_by: reconciliation-reviewer
 inputs:
   - path: docs/stories/US-001-register-customer.md
@@ -40,27 +40,31 @@ inputs:
   - path: docs/evidence/US-001-test-generation-report.md
     version: 1
   - path: docs/evidence/US-001-implementation-report.md
-    version: 1
+    version: 2
   - path: docs/verification/US-001-implementation-verification.md
-    version: 1
+    version: 2
   - path: docs/reviews/security/US-001-security-review.md
-    version: 1
+    version: 2
 supersedes: docs/reconciliation/US-001-traceability.md
 ---
 
-# End-to-End Traceability Matrix — US-001 Customer Registration  (v2)
+# End-to-End Traceability Matrix — US-001 Customer Registration  (v3)
 
 Authoritative Acceptance-Criteria → artifact / code / test matrix for US-001.
 `implementation-verifier`, `security-reviewer`, and `pr-preparer` reference this
 matrix; they do not rebuild it. It is owned by `reconciliation-reviewer`.
 
-> **v2.** Supersedes traceability v1 following the `HUMAN_PR_APPROVAL` rejection
-> (2026-09-01). Two Acceptance Criteria move from `RECONCILED` to
-> `PARTIALLY_RECONCILED` because the human made the concurrent-duplicate `409`
-> mapping (RC-3 / REJECT-4) and the `RegistrationRequest.toString()` masking
-> (RC-1 / REJECT-3) mandatory for this Story. The security-posture row
-> SEC-1 / SC-4 moves to `PARTIALLY_RECONCILED` pending RC-9 / REJECT-5. See
-> `docs/reviews/reconciliation/US-001-reconciliation.md` v2 §17.
+> **v3.** Supersedes traceability v2. The corrective implementation pass
+> (`implementation_report` v2, attempt 2) applied RC-1, RC-3, RC-9 (code half),
+> and RC-10; `implementation_verification` v2 (PASS, 67/67) and
+> `security_review` v2 (PASS, 0 Critical / 0 Major) independently confirmed them.
+> **All seven Acceptance Criteria are now `RECONCILED`** — AC-002 and AC-004,
+> `PARTIALLY_RECONCILED` in v2, are closed. The security-posture row
+> **SEC-1 / SC-4 remains `PARTIALLY_RECONCILED`**: the RC-9 *documentation half*
+> (spec §7 SEC-1 row line 135; api-design §6 line 138 / §8 line 174) is still
+> unpublished — those artifacts still read "deny-by-default (SC-4)" without the
+> clarifying note. See `docs/reviews/reconciliation/US-001-reconciliation.md` v3
+> §17 (RC-9).
 
 Base package `org.example.customerportal`. Production base path
 `src/main/java/org/example/customerportal/`. Test base path
@@ -78,15 +82,15 @@ implementation, test, verification, and security evidence all agree);
 |---|---|
 | Story | AC-001 Successful Registration |
 | Specification | §4 FR-1, FR-5, FR-8, FR-9; §5 AC-001; §6.1 / §6.2 valid path |
-| Resolved decisions | OD-001:A (email format/length), OD-004:A (`201` body = `id, email, role, createdAt`), OD-006:A (lowercase-in-service) — all `RESOLVED` in `open_decisions.md` v2 |
+| Resolved decisions | OD-001:A, OD-004:A, OD-006:A — all `RESOLVED` in `open_decisions.md` v2 |
 | API design | api-design §4, §4.2, §4.3 `201`; openapi.yaml `paths./customers.post` `201` + `Location` + `CustomerResponse` |
-| DB design | db-design §4.2 (`customer` columns), §8.1 DDL; entity-model §2, §4.1 |
-| Impact analysis | §6 (controller/service/repository/entity create), §7, §8, §16 |
+| DB design | db-design §4.2, §8.1 DDL; entity-model §2, §4.1 |
+| Impact analysis | §6, §7, §8, §16 |
 | Plan step / files | Steps 4, 8, 9; C-13, C-12, C-3, C-2, C-1, C-7, C-16 |
-| Production code | `controller/CustomerController.register`; `service/CustomerService.register` (BCrypt encode, `Role.CUSTOMER`, `enabled=true`, `ServletUriComponentsBuilder` `Location`); `repository/CustomerRepository.save`; `model/entity/Customer`; `model/dto/CustomerResponse`; `src/main/resources/schema.sql` |
+| Production code | `controller/CustomerController.register`; `service/CustomerService.register` (BCrypt encode, `Role.CUSTOMER`, `enabled=true`, `Location`); `repository/CustomerRepository.save`; `model/entity/Customer`; `model/dto/CustomerResponse`; `src/main/resources/schema.sql` |
 | Tests | `registration.CustomerRegistrationApiTest.validRegistrationReturns201WithLocationAndCustomerBody`, `.emailIsStoredAndReturnedNormalisedToLowercase`, `.password72CharsMeetingPolicyIsAccepted`; `service.CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash`; `security.RegistrationSecurityPostureTest.registrationEndpointIsReachableWithoutAuthentication` |
-| Impl. Verification | §7 AC-001 VERIFIED; §8 contract match; §9 persistence match |
-| Security Review | §5 (auth), §7 (BCrypt hash verifies, `role=CUSTOMER`, `enabled=true`) |
+| Impl. Verification | v2 §7 AC-001 VERIFIED (carried; unchanged in the corrective pass) |
+| Security Review | v2 §5 (auth), §7 (BCrypt hash verifies, `role=CUSTOMER`, `enabled=true`) |
 | **Final status** | **RECONCILED** |
 
 ### AC-002 — Unique Email  (Spec AC-002)
@@ -100,12 +104,12 @@ implementation, test, verification, and security evidence all agree);
 | DB design | db-design §4.3 `uq_customer_email`, §5 case-insensitive mechanism; entity-model §3 |
 | Impact analysis | §6, §7, §8, §16 |
 | Plan step / files | Step 8; C-12, C-10, C-11, C-3, C-16 |
-| Production code | `service/CustomerService.register` (`normalizeEmail` → `existsByEmail` → `DuplicateEmailException`); `exception/GlobalExceptionHandler.handleDuplicateEmail` → `409` + OD-003:A message; `Customer` `@UniqueConstraint(uq_customer_email)`; `schema.sql` `uq_customer_email` |
-| Tests | `registration.CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409`; `service.CustomerServiceTest.duplicateEmailSameCaseThrowsAndDoesNotSave`, `.duplicateEmailDifferentCaseThrowsAndDoesNotSave`, `.emailIsNormalisedToLowercaseAndTrimmedBeforeCheckAndSave`; `persistence.CustomerSchemaTest.emailHasAUniqueConstraint`, `.caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint` |
-| Impl. Verification | §7 AC-002 VERIFIED (single-request path; `save` never called on the second attempt) |
-| Security Review | §11 (case-insensitive uniqueness VERIFIED); §16 abuse case; F-3 for the concurrent race |
-| Gap (RC-3 / REJECT-4) | The concurrent-duplicate race maps to `500`, not `409`: `CustomerService.register` is check-then-act; two simultaneous requests both pass `existsByEmail`, the second `save` throws an unmapped `DataIntegrityViolationException` from `uq_customer_email` → `GlobalExceptionHandler.handleUnexpected` → `500`. **No test covers this path.** The human made the `409` mapping + deterministic test coverage mandatory for US-001. |
-| **Final status** | **PARTIALLY_RECONCILED** — single-request duplicate path RECONCILED; concurrent-duplicate mapping to `409` (RC-3 / REJECT-4) is a required code + test change routed to `IMPLEMENTATION` (`implementation_drift`). |
+| Production code | `service/CustomerService.register`: pre-check `existsByEmail(normalizeEmail(...))` → `DuplicateEmailException`; **and** `try/catch (DataIntegrityViolationException)` around `save` → `isEmailUniquenessViolation(...)` (Hibernate constraint name + case-insensitive cause-chain message-token match on `uq_customer_email`) → `DuplicateEmailException`, any other integrity violation rethrown. `exception/GlobalExceptionHandler.handleDuplicateEmail` → `409` + OD-003:A message. `Customer` `@UniqueConstraint(uq_customer_email)`; `schema.sql` `uq_customer_email`. |
+| Tests | `registration.CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409`; `service.CustomerServiceTest.duplicateEmailSameCaseThrowsAndDoesNotSave`, `.duplicateEmailDifferentCaseThrowsAndDoesNotSave`, `.emailIsNormalisedToLowercaseAndTrimmedBeforeCheckAndSave`, **`.concurrentDuplicateEmailUniqueViolationIsMappedToDuplicateEmailException`**, **`.anUnrelatedIntegrityViolationIsNotReportedAsADuplicateEmail`** (`isSameAs` negative — load-bearing); `persistence.CustomerSchemaTest.emailHasAUniqueConstraint`, `.caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint` |
+| Impl. Verification | **v2 §7 AC-002 VERIFIED — single-request and concurrent paths**; v1 finding MF-3 CLOSED |
+| Security Review | v2 §11 (concurrent duplicate → `409` VERIFIED, v1 F-3 CLOSED; residual robustness note SR-3, Minor, no loop-back); §16 abuse case PROTECTED |
+| Corrective change (RC-3 / REJECT-4) | **APPLIED & VERIFIED** — `implementation_report` v2 §4, `implementation_verification` v2 §7/§17, `security_review` v2 §11. |
+| **Final status** | **RECONCILED** — single-request and concurrent-duplicate paths both return `409`; deterministic test coverage present. |
 
 ### AC-003 — Email Validation  (Spec AC-003)
 
@@ -120,8 +124,8 @@ implementation, test, verification, and security evidence all agree);
 | Plan step / files | Steps 6, 9, 11; C-6, C-11 |
 | Production code | `model/request/RegistrationRequest` (`@NotBlank @Email @Size(max = 254)` on `email`); `exception/GlobalExceptionHandler.handleValidation` → `400` + `fieldErrors[]` |
 | Tests | `registration.CustomerRegistrationApiTest.malformedEmailReturns400WithEmailFieldError`, `.blankEmailReturns400WithEmailFieldError`, `.emailLongerThan254CharsReturns400WithEmailFieldError`; `persistence.CustomerSchemaTest.emailColumnIsVarchar254NotNull` |
-| Impl. Verification | §7 AC-003 VERIFIED; §11 validation active at runtime |
-| Security Review | §9 input validation VERIFIED (server-side, explicit constraints) |
+| Impl. Verification | v2 §7 AC-003 VERIFIED (carried) |
+| Security Review | v2 §9 input validation VERIFIED |
 | **Final status** | **RECONCILED** |
 
 ### AC-004 — Password Storage  (Spec AC-004)
@@ -134,13 +138,13 @@ implementation, test, verification, and security evidence all agree);
 | API design | api-design §4.1 (`password` `writeOnly`, dual-layer policy); openapi.yaml `password` `writeOnly` |
 | DB design | db-design §4.2 `password_hash VARCHAR(60) NOT NULL`, §7 sensitive-data handling; entity-model §2, §4.1 |
 | Impact analysis | §8, §9 |
-| Plan step / files | Steps 8, 10; C-12, C-14 (`BCryptPasswordEncoder` bean), C-2 |
-| Production code | `service/CustomerService.register` (`passwordEncoder.encode(password)`, plaintext discarded); `security/SecurityConfig.passwordEncoder` = `new BCryptPasswordEncoder()`; `model/entity/Customer.passwordHash` `@Column(length = 60, nullable = false)`; `schema.sql` `password_hash VARCHAR(60) NOT NULL`, no plaintext column; `Customer.toString()` excludes `passwordHash` |
-| Tests | `persistence.CustomerSchemaTest.passwordHashColumnIsVarchar60NotNull`, `.noPlaintextPasswordColumnExists`; `service.CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash` (hash matches `^\$2[aby]\$\d\d\$.{53}$`, verifies, `!= raw`), `.serviceRechecksThePasswordPolicyBeforeHashingOrTouchingTheRepository` |
-| Impl. Verification | §7 AC-004 VERIFIED; §9 `password_hash` schema match; §12 no plaintext persisted |
-| Security Review | §7 (BCrypt, no no-op encoder; plaintext confined to inbound DTO; never persisted/logged/returned — all VERIFIED); §20 positive controls 1, 2, 3 |
-| Gap (RC-1 / REJECT-3) | `model/request/RegistrationRequest` is a Java `record`; its compiler-generated `toString()` renders the plaintext `password`. No reachable leak path today (zero logger / `System.out` / `println` in `src/main`; `GlobalExceptionHandler` never calls `toString()` on the bound DTO), but the human ruled the latent contradiction of SEC-3 unacceptable to ship and made a masking `toString()` + a proving test mandatory. |
-| **Final status** | **PARTIALLY_RECONCILED** — storage (BCrypt, no plaintext column, not returned) RECONCILED; the `RegistrationRequest.toString()` masking + test (RC-1 / REJECT-3) is a required code + test change routed to `IMPLEMENTATION` (`implementation_drift`). |
+| Plan step / files | Steps 8, 10; C-12, C-14, C-2 |
+| Production code | `service/CustomerService.register` (`passwordEncoder.encode(password)`, plaintext discarded); `security/SecurityConfig.passwordEncoder` = `new BCryptPasswordEncoder()`; `model/entity/Customer.passwordHash` `@Column(length = 60, nullable = false)`; `schema.sql` `password_hash VARCHAR(60) NOT NULL`, no plaintext column; `Customer.toString()` excludes `passwordHash`; **`model/request/RegistrationRequest.toString()` overridden to `"RegistrationRequest{email='…', password=***}"`** |
+| Tests | `persistence.CustomerSchemaTest.passwordHashColumnIsVarchar60NotNull`, `.noPlaintextPasswordColumnExists`; `service.CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash`, `.serviceRechecksThePasswordPolicyBeforeHashingOrTouchingTheRepository`; **`model.request.RegistrationRequestTest`** (3 tests — `toString()` never renders the plaintext, `password=***` present, null-safe, `password()` accessor unchanged) |
+| Impl. Verification | **v2 §7 AC-004 VERIFIED incl. no plaintext in `toString()`**; v1 finding MF-5 CLOSED |
+| Security Review | v2 §7 (plaintext not renderable via `toString()` — VERIFIED, v1 F-1 CLOSED); §8, §20 positive control 2 |
+| Corrective change (RC-1 / REJECT-3) | **APPLIED & VERIFIED** — `implementation_report` v2 §4, `implementation_verification` v2 §7/§12, `security_review` v2 §7. |
+| **Final status** | **RECONCILED** — BCrypt-only storage, no plaintext column, not returned, and the request DTO `toString()` masks the password with a proving test. |
 
 ### AC-005 — Secure Response  (Spec AC-005)
 
@@ -155,8 +159,8 @@ implementation, test, verification, and security evidence all agree);
 | Plan step / files | Steps 7, 8; C-7, C-12 |
 | Production code | `model/dto/CustomerResponse` = `record(Long id, String email, String role, OffsetDateTime createdAt)`; `service/CustomerService.toResponse` |
 | Tests | `registration.CustomerRegistrationApiTest.successResponseNeverExposesCredentialOrInternalState` (`$.password`, `$.passwordHash`, `$.password_hash`, `$.enabled`, `$.updatedAt` all absent) |
-| Impl. Verification | §7 AC-005 VERIFIED; §8 `CustomerResponse` contract match |
-| Security Review | §8 sensitive-data exposure (response DTO OK); §20 positive control 4 |
+| Impl. Verification | v2 §7 AC-005 VERIFIED (carried) |
+| Security Review | v2 §8, §20 positive control 4 |
 | **Final status** | **RECONCILED** |
 
 ### AC-006 — Password Policy Enforcement  (Spec AC-006, derived from Story AC-001 / AC-003)
@@ -164,16 +168,16 @@ implementation, test, verification, and security evidence all agree);
 | Dimension | Reference |
 |---|---|
 | Story | derived — password policy (Business Value: self-registration with a valid password) |
-| Specification | §4 FR-3, FR-6; §6.2 password policy (12–72, upper/lower/digit/special); SC-1; SC-9 (no value echo) |
+| Specification | §4 FR-3, FR-6; §6.2 password policy (12–72 bytes, upper/lower/digit/special); SC-1; SC-9 |
 | Resolved decisions | — (spec-review F-5 / design-review D-6: 72 is BCrypt input **bytes**; plan PD-2) |
-| API design | api-design §4.1; design-review D-1 (policy in schema `description` only — tests source from Spec §6.2), D-6 |
-| DB design | db-design §10 note 5 (72-byte bound enforced in validation + service, not the column) |
+| API design | api-design §4.1; design-review D-1, D-6 |
+| DB design | db-design §10 note 5 |
 | Impact analysis | §7, §10; risk R-3 |
 | Plan step / files | Steps 6, 8; C-4, C-5, C-12; PD-2 |
-| Production code | `validation/ValidPassword` (static generic message `"Password does not meet the security policy."`); `validation/PasswordPolicyValidator` (`MIN_BYTES = 12`, `MAX_BYTES = 72` UTF-8, 4 char-class checks); `service/CustomerService.register` re-check via `PasswordPolicyValidator.isCompliant` → `InvalidPasswordException`; `exception/GlobalExceptionHandler.handleInvalidPassword` / `.handleValidation` → `400` |
+| Production code | `validation/ValidPassword` (static generic message); `validation/PasswordPolicyValidator` (`MIN_BYTES = 12`, `MAX_BYTES = 72` UTF-8, 4 char-class checks); `service/CustomerService.register` re-check via `PasswordPolicyValidator.isCompliant` → `InvalidPasswordException`; `exception/GlobalExceptionHandler.handleInvalidPassword` / `.handleValidation` → `400` |
 | Tests | `registration.CustomerRegistrationApiTest` 8 password scenarios incl. `.passwordOver72BytesButUnder72CharsReturns400WithPasswordFieldError`, `.passwordValidationMessageDoesNotEchoTheSubmittedValue`; `validation.PasswordPolicyValidatorTest` (17 tests); `service.CustomerServiceTest.serviceRechecksThePasswordPolicyBeforeHashingOrTouchingTheRepository` |
-| Impl. Verification | §7 AC-006 VERIFIED (byte boundary, dual-layer, safe message) |
-| Security Review | §7 (policy matches SC-1 exactly; enforced twice; byte-measured; static non-echoing message — all VERIFIED); R-7 closed; §20 positive control 11 |
+| Impl. Verification | v2 §7 AC-006 VERIFIED (carried) |
+| Security Review | v2 §7 (policy = SC-1, enforced twice, byte-measured, non-echoing message — VERIFIED); R-7 signed off; §20 positive control 12 |
 | **Final status** | **RECONCILED** |
 
 ### AC-007 — Media Type Enforcement  (Spec AC-007, derived from api-conventions.md AC-2)
@@ -189,15 +193,15 @@ implementation, test, verification, and security evidence all agree);
 | Plan step / files | Steps 9, 11; C-13 (`consumes`), C-11 |
 | Production code | `controller/CustomerController` `@PostMapping(consumes = APPLICATION_JSON_VALUE)`; `exception/GlobalExceptionHandler.handleMediaType` → `415` |
 | Tests | `registration.CustomerRegistrationApiTest.nonJsonContentTypeReturns415`, `.missingContentTypeReturns415` |
-| Impl. Verification | §7 AC-007 VERIFIED |
-| Security Review | §10 API security (method + content type constrained — VERIFIED) |
+| Impl. Verification | v2 §7 AC-007 VERIFIED (carried) |
+| Security Review | v2 §10 API security VERIFIED |
 | **Final status** | **RECONCILED** (finding RC-2 — implemented `415` `message` string differs verbatim from the OpenAPI illustrative example; AC-6 body **shape** preserved; no behaviour mismatch). |
 
 ## 2. Derived rules
 
 | Rule | Spec / design | Production code | Test | Status |
 |---|---|---|---|---|
-| Unknown / extra JSON property → `400` | Spec §6.3; api-design §3; openapi.yaml `additionalProperties: false` | `spring.jackson.deserialization.fail-on-unknown-properties: true`; `GlobalExceptionHandler.handleUnreadable` (single `HttpMessageNotReadableException` branch, PD-1) | `registration.CustomerRegistrationApiTest.unknownJsonPropertyReturns400` | RECONCILED (RC-2 — single combined message vs two OpenAPI examples; shape preserved) |
+| Unknown / extra JSON property → `400` | Spec §6.3; api-design §3; openapi.yaml `additionalProperties: false` | `spring.jackson.deserialization.fail-on-unknown-properties: true`; `GlobalExceptionHandler.handleUnreadable` (single branch, PD-1) | `registration.CustomerRegistrationApiTest.unknownJsonPropertyReturns400` | RECONCILED (RC-2 — single combined message vs two OpenAPI examples; shape preserved) |
 | Malformed JSON → `400` | Spec §6.3; api-design §3 | same `HttpMessageNotReadableException` branch | `registration.CustomerRegistrationApiTest.malformedJsonReturns400` | RECONCILED |
 | AC-6 error body shape (`timestamp, status, error, message, path`, optional `fieldErrors[]`) | api-conventions.md AC-6; api-design §7 | `model/dto/ErrorResponse` (`@JsonInclude(NON_EMPTY)`), `model/dto/ApiFieldError`; single `@RestControllerAdvice` | `registration.CustomerRegistrationApiTest.errorBodyHasTheApiConventionShape`, `.errorBodyNeverLeaksInternals` | RECONCILED |
 
@@ -205,14 +209,14 @@ implementation, test, verification, and security evidence all agree);
 
 | Requirement | Spec | Production code | Test | Status |
 |---|---|---|---|---|
-| SEC-1 / SC-4 — registration public, everything else authentication-required by default | §7 SEC-1 | `security/SecurityConfig` `REGISTRATION_ENDPOINT` matcher `permitAll()` + `anyRequest().authenticated()`; `HttpStatusEntryPoint(401)`; `formLogin`/`httpBasic`/`logout` disabled | `security.RegistrationSecurityPostureTest.registrationEndpointIsReachableWithoutAuthentication`, `.protectedRouteReturns401WhenUnauthenticated` | **PARTIALLY_RECONCILED** — behaviour is secure and tested, but the `SecurityConfig` javadoc / `spec §7` call it "deny-by-default" while `anyRequest().authenticated()` implements authentication-required-by-default (SC-4's actual definition). RC-9 / REJECT-5: align the wording (or switch to literal `denyAll()`) and match tests — routed to `IMPLEMENTATION`. |
-| SEC-7 / OD-002:B — CSRF exemption scoped to the registration POST only | §7 SEC-7; api-design §6 (recorded SC-5 decision) | `SecurityConfig` `.csrf(c -> c.ignoringRequestMatchers(REGISTRATION_ENDPOINT))` — the same single matcher | `security.RegistrationSecurityPostureTest.registrationPostIsAcceptedWithoutACsrfToken` | RECONCILED |
+| SEC-1 / SC-4 — registration public, everything else authentication-required by default | §7 SEC-1 | `security/SecurityConfig` `REGISTRATION_ENDPOINT` matcher `permitAll()` + `anyRequest().authenticated()`; `HttpStatusEntryPoint(401)`; `formLogin`/`httpBasic`/`logout` disabled. **Class javadoc + inline comment now state "authentication-required by default (SC-4) … not a literal `denyAll()`" (RC-9 code half).** | `security.RegistrationSecurityPostureTest.registrationEndpointIsReachableWithoutAuthentication`, `.protectedRouteReturns401WhenUnauthenticated` | **PARTIALLY_RECONCILED** — behaviour is secure and tested; the `SecurityConfig` code comment is aligned; **but `docs/specifications/US-001-spec.md:135` (SEC-1 row) and `docs/designs/api/US-001-api-design.md:138` / `:174` still read "deny-by-default (SC-4)" without the clarifying note.** RC-9 / REJECT-5 is closable only with both halves in place. Routed to `SPECIFICATION` (`specification_gap`); the API design note follows in the cascade. |
+| SEC-7 / OD-002:B — CSRF exemption scoped to the registration POST only | §7 SEC-7; api-design §6 | `SecurityConfig` `.csrf(c -> c.ignoringRequestMatchers(REGISTRATION_ENDPOINT))` — the same single matcher | `security.RegistrationSecurityPostureTest.registrationPostIsAcceptedWithoutACsrfToken` | RECONCILED (security_review v2 R-2 signed off) |
 | SEC-9 / SC-6 — H2 console disabled every profile | §7 SEC-9 | `spring.h2.console.enabled: false` in `application.yaml` **and** `application-test.yaml` | `security.RegistrationSecurityPostureTest.h2ConsoleIsNotExposed` | RECONCILED |
 | SEC-6 — error responses leak no internals | §7 SEC-6 | `GlobalExceptionHandler` — one static client-safe `message` per branch; `500` fallback | `registration.CustomerRegistrationApiTest.errorBodyNeverLeaksInternals` | RECONCILED |
 | SEC-5 — new account `ROLE_CUSTOMER`, `enabled = true` | §7 SEC-5 | `CustomerService` sets `Role.CUSTOMER`, `enabled = true`; `schema.sql` `role`/`enabled` `NOT NULL` | `persistence.CustomerSchemaTest.roleColumnIsNotNull`, `.enabledColumnIsBooleanNotNull`; `CustomerServiceTest` happy path | RECONCILED |
-| SEC-10 / SC-8 — `ddl-auto` `validate`, hand-written `schema.sql` | §7 SEC-10 | `ddl-auto: validate` both profiles; `src/main/resources/schema.sql` | context boots clean under `validate` (Impl. Verification §5, §9) | RECONCILED |
-| SEC-11 / SC-7 — no secrets introduced | §7 SEC-11 | `application.yaml` `password: ""` is the H2 default (not a secret); no tokens/keys | Security Review §17 | RECONCILED (findings RC-5 / RC-6 — Informational: blank H2 credential + `AUTO_SERVER`; approved config, local-dev only) |
-| SEC-3 — plaintext password never logged / echoed | §7 SEC-3 | plaintext confined to `RegistrationRequest`; discarded after `encode` | `service.CustomerServiceTest`; `security_review` §7/§13 | **PARTIALLY_RECONCILED** — no reachable leak path today, but `RegistrationRequest` record `toString()` renders it (RC-1 / REJECT-3); masking `toString()` + test routed to `IMPLEMENTATION`. |
+| SEC-10 / SC-8 — `ddl-auto` `validate`, hand-written `schema.sql` | §7 SEC-10 | `ddl-auto: validate` both profiles; `src/main/resources/schema.sql` | context boots clean under `validate` (Impl. Verification v2 §5, §9) | RECONCILED |
+| SEC-11 / SC-7 — no secrets introduced | §7 SEC-11 | `application.yaml` `password: ""` is the H2 default (not a secret); no tokens/keys | Security Review v2 §17 | RECONCILED (findings SR-4 / SR-5 — Informational: blank H2 credential + `AUTO_SERVER`; approved config, local-dev only) |
+| SEC-3 — plaintext password never logged / echoed | §7 SEC-3 | plaintext confined to `RegistrationRequest`; discarded after `encode`; **`RegistrationRequest.toString()` masks `password`** | `model.request.RegistrationRequestTest` (3 tests); `service.CustomerServiceTest`; `security_review` v2 §7/§13 | **RECONCILED** — RC-1 closed; no reachable leak path and the latent `toString()` path is now masked with a proving test. |
 
 ## 4. Persistence / NFR-4 / BR-007
 
@@ -222,31 +226,32 @@ implementation, test, verification, and security evidence all agree);
 | Explicit column length / nullability on every column | db-design §4.2; NFR-4; PC-4 | `Customer` explicit `@Column(...)` per field | `persistence.CustomerSchemaTest` (email 254, password_hash 60, role/enabled/id NOT NULL) | RECONCILED |
 | UTC audit timestamps, `created_at` immutable | db-design §4.2; entity-model §3; BR-007; PC-6 | `Customer.createdAt` `@CreatedDate @Column(updatable = false)`, `updatedAt` `@LastModifiedDate`; `config/JpaAuditingConfig` UTC `DateTimeProvider`; `schema.sql` `TIMESTAMP WITH TIME ZONE NOT NULL` | `persistence.CustomerSchemaTest.auditTimestampColumnsAreTimeZoneAwareAndNotNull`; `persistence.CustomerPersistenceTest.auditingPopulatesBothTimestampsInUtc`, `.createdAtIsNotChangedByALaterUpdate` | RECONCILED (R-1 / R-6 closed) |
 | `role` persisted as enum name (`EnumType.STRING`) | db-design §4.2; entity-model §2.2 | `Customer.role` `@Enumerated(EnumType.STRING) @Column(length = 20)`; `ck_customer_role` CHECK in DDL | `persistence.CustomerPersistenceTest.roleIsPersistedAsTheEnumName` | RECONCILED |
-| Generated `./data/*` git-ignored | db-design §8; impact §6 M-3 | `.gitignore` `/data/` | not tracked, not in tree (Impl. Verification §4) | RECONCILED |
+| Generated `./data/*` git-ignored | db-design §8; impact §6 M-3 | `.gitignore` `/data/` | not tracked, not in tree (Impl. Verification v2 §4) | RECONCILED |
 
 ## 5. Regression
 
 | Scenario | Test | Status |
 |---|---|---|
-| Context still boots with Security + JPA active | `CustomerPortalApplicationTests.contextLoads` (+`@ActiveProfiles("test")`, M-4) | RECONCILED — 1/1 PASS (as of `IMPLEMENTATION`; to be re-run after the loop-back) |
+| Context still boots with Security + JPA active | `CustomerPortalApplicationTests.contextLoads` (`@ActiveProfiles("test")`, M-4) | RECONCILED — 1/1 PASS (independently reproduced by `implementation-verifier` v2) |
 
 ## 6. Coverage summary
 
 | | Count |
 |---|---|
 | Story / Specification Acceptance Criteria (AC-001..AC-007) | 7 |
-| RECONCILED | 5 (AC-001, AC-003, AC-005, AC-006, AC-007) |
-| PARTIALLY_RECONCILED | 2 (AC-002 — RC-3 / REJECT-4; AC-004 — RC-1 / REJECT-3) |
+| RECONCILED | **7** (AC-001..AC-007) |
+| PARTIALLY_RECONCILED | 0 |
 | NOT_RECONCILED / BLOCKED | 0 |
-| Security-posture rows PARTIALLY_RECONCILED | 2 (SEC-1 / SC-4 — RC-9 / REJECT-5; SEC-3 — RC-1 / REJECT-3) |
-| Executable tests (independently reproduced by `implementation-verifier` v1) | 62 across 7 suites, 0 failures / 0 errors / 0 skipped — valid as of `IMPLEMENTATION`, to be re-run after the `implementation_drift` loop-back |
+| Security-posture rows PARTIALLY_RECONCILED | **1** (SEC-1 / SC-4 — RC-9 documentation half unpublished; routed to `SPECIFICATION`) |
+| Executable tests (independently reproduced by `implementation-verifier` v2) | **67** across 8 suites, 0 failures / 0 errors / 0 skipped |
 
 Every mandatory Acceptance Criterion has an approved requirement, an
-implementation location, and independent verification / security evidence for
-its already-delivered scope. **AC-002 and AC-004 are not fully reconciled**:
-the human review at `HUMAN_PR_APPROVAL` made the concurrent-duplicate `409`
-mapping and the `RegistrationRequest.toString()` masking (each with a
-deterministic test) mandatory for US-001. Those corrections, plus the RC-9
-SC-4 wording alignment and removal of the RC-10 stray file, are routed to
-`IMPLEMENTATION` (`implementation_drift`); `IMPLEMENTATION_VERIFICATION`,
-`SECURITY_REVIEW`, and `RECONCILIATION` then re-run per the human's mandate.
+implementation location, a test, and independent verification / security
+evidence — **all seven are `RECONCILED`**. The one open item is a
+documentation-consistency residual on the SEC-1 / SC-4 posture row: the RC-9
+"deny-by-default" → "authentication-required by default" note, made mandatory by
+the human at `HUMAN_PR_APPROVAL` (REJECT-5), is present in `SecurityConfig` code
+but not yet in `docs/specifications/US-001-spec.md` §7 or
+`docs/designs/api/US-001-api-design.md` §6 / §8. Reconciliation v3 routes it to
+`SPECIFICATION` (`specification_gap`); `API_DESIGN` picks up its half in the
+cascade. No code, test, persistence, or behaviour change is required.
