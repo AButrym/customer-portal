@@ -1,19 +1,19 @@
 ---
 artifact_type: specification
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: DRAFT
 created_at: 2026-08-31T00:33:59Z
-updated_at: 2026-08-31T07:48:48Z
+updated_at: 2026-09-02T16:30:00Z
 produced_by: spec-writer
 inputs:
   - path: docs/stories/US-001-register-customer.md
     version: null
   - path: docs/evidence/US-001-clarification-report.md
-    version: 1
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
-supersedes: null
+    version: 2
+supersedes: docs/specifications/US-001-spec.md
 ---
 
 # Specification — US-001 Customer Registration
@@ -132,7 +132,7 @@ invented.
 
 | id | Requirement | Source |
 |---|---|---|
-| SEC-1 | `POST /api/v1/customers` is the only public endpoint added by this Story; every other endpoint remains deny-by-default. | SC-4 |
+| SEC-1 | `POST /api/v1/customers` is the only public endpoint added by this Story; every other endpoint remains deny-by-default. Here "deny by default" means **authentication-required by default** per SC-4 (`anyRequest().authenticated()`) — not a literal `denyAll()`. | SC-4 |
 | SEC-2 | Passwords are hashed with `BCryptPasswordEncoder` (default strength); a plaintext/no-op encoder is forbidden. The encoder bean lives in the `security` package. | SC-1 |
 | SEC-3 | The plaintext password appears only on the inbound request DTO. It is never placed on a response DTO, never persisted, never logged, never included in an error message. | SC-1, SC-9 |
 | SEC-4 | The password hash is stored only in `password_hash` and is never returned by any endpoint. | SC-1, PC-9 |
@@ -241,3 +241,10 @@ documented gap with a draft assumption. Verdict is therefore not `BLOCKED`.
 | UTC timestamps, explicit column mapping, `password_hash VARCHAR(60)` | BR-007, PC-3–PC-6, PC-9 |
 | AC-6 error body, single `@RestControllerAdvice` | `api-conventions.md` AC-5, AC-6, AC-9 |
 | Layering, build stability, test coverage, traceability | `non-functional-requirements.md` NFR-005–NFR-008 |
+
+## 13. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1 | 2026-08-31 | Initial Specification; approved at `HUMAN_SPEC_APPROVAL` (2026-08-31). |
+| 2 | 2026-09-02 | SEC-1 (§7) clarified: "deny by default" means authentication-required by default per SC-4 (`anyRequest().authenticated()`), not a literal `denyAll()` — resolves RECONCILIATION v3 RC-9 / security-review v2 SR-1 / implementation-verification v2 MF-a wording ambiguity. Input references updated to `clarification_report` v2 and `open_decisions` v2 (no decision content changed; OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A were already reflected as the draft assumptions in v1). No functional, validation, error-handling, API-contract, or test change. |
