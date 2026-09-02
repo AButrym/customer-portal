@@ -1,16 +1,18 @@
 ---
 artifact_type: reconciliation
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: IN_REVIEW
 created_at: 2026-08-31T12:52:00Z
-updated_at: 2026-08-31T12:52:00Z
+updated_at: 2026-09-02T14:02:21Z
 produced_by: reconciliation-reviewer
 inputs:
   - path: docs/stories/US-001-register-customer.md
     version: null
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
+    version: 2
+  - path: docs/evidence/US-001-clarification-report.md
+    version: 2
   - path: docs/specifications/US-001-spec.md
     version: 1
   - path: docs/reviews/specifications/US-001-spec-review.md
@@ -43,68 +45,113 @@ inputs:
     version: 1
   - path: docs/reviews/security/US-001-security-review.md
     version: 1
-supersedes: null
-reconciled_acceptance_criteria: 7
+supersedes: docs/reviews/reconciliation/US-001-reconciliation.md
+reconciled_acceptance_criteria: 5
 total_acceptance_criteria: 7
 critical_findings: 0
-major_findings: 0
-minor_findings: 5
-informational_findings: 2
-candidate_files: 50
-excluded_files: 12
+major_findings: 4
+minor_findings: 2
+informational_findings: 3
+candidate_files: 51
+excluded_files: 1
 ---
 
-# Reconciliation — US-001 Customer Registration
+# Reconciliation — US-001 Customer Registration  (v2)
+
+> **v2 re-run.** Reconciliation v1 (verdict PASS, 2026-08-31) was **rejected by
+> the human at `HUMAN_PR_APPROVAL`** on 2026-09-01T08:41:01Z
+> (`docs/workflow/history.jsonl`, `verdict: HUMAN_REJECTED`, decided_by
+> `ayubutrym@gmail.com`) with six required changes (REJECT-1..REJECT-6). This
+> version supersedes v1, corrects the two report defects the human identified
+> (REJECT-1 finding counts, REJECT-6 PR accounting + stray file), records that
+> REJECT-2 was resolved out-of-band, and routes the three code corrections
+> (REJECT-3, REJECT-4, REJECT-5) back to `IMPLEMENTATION`.
+
+## 0. Disposition of the six rejection items
+
+| Item | Summary | Status in v2 | Routing |
+|---|---|---|---|
+| REJECT-1 | Reconciliation v1 finding counts inconsistent (5 Minor + 2 Informational / RC-1..RC-7 in the front matter & summary vs 5 Minor + 3 Informational / RC-1..RC-8 in the body) | **Fixed in this document** — front matter, §1, §16, §17, §21, and the result envelope now agree | none (report-only, fixed on re-run) |
+| REJECT-2 | `open_decisions.md` must be published v2 marking OD-001..OD-006 RESOLVED | **Resolved out-of-band.** `docs/decisions/US-001-open-decisions.md` v2 and `docs/evidence/US-001-clarification-report.md` v2 exist (status `APPROVED`, all six `RESOLVED` with `OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`), currently uncommitted in the working tree. Verified — see §3 / §14 / §19. No decision content changed. | none (finding RC-4 now **RESOLVED**) |
+| REJECT-3 | `RegistrationRequest` record `toString()` renders the plaintext password — add a masking `toString()` + a test proving the submitted plaintext password is never rendered | **Open — code change pending** (no `src/**` change since `IMPLEMENTATION` commit `5e17151`) | `implementation_drift` → **IMPLEMENTATION** (finding RC-1, escalated Minor → Major) |
+| REJECT-4 | `CustomerService.register` check-then-act — concurrent duplicate trips `uq_customer_email` as an unmapped `DataIntegrityViolationException` → `500`; map to `409` without over-catching; add deterministic test coverage | **Open — code change pending** | `implementation_drift` → **IMPLEMENTATION** (finding RC-3, escalated Minor → Major) |
+| REJECT-5 | Resolve the SC-4 "deny-by-default" wording/behaviour ambiguity — literal `denyAll()` for non-registration requests, or document that the approved policy means authentication-required by default; tests must match | **Open — code/doc change pending** | `implementation_drift` → **IMPLEMENTATION** (finding RC-9, new Major) + coordinated doc note (spec §7 / api-design §6) |
+| REJECT-6 | Reconciliation PR accounting must distinguish (a) US-001 story changes, (b) harness-maintenance changes, (c) excluded changes, and must not describe harness-maintenance changes as absent from the diff; classify the stray `src/main/.../docs/hooks/tool-usage.jsonl` | **PR accounting fixed in this document** (§15, three-category). Stray file classified **EXCLUDE / must be removed from `src/`** (finding RC-10, new Major) — reconciliation does not delete it | stray-file removal folded into the IMPLEMENTATION loop-back |
+
+**Post-correction sequence required by the human (recorded here for the
+orchestrator):** after the REJECT-3/4/5 code changes, rerun the affected tests,
+then repeat `IMPLEMENTATION_VERIFICATION`, `SECURITY_REVIEW`, and
+`RECONCILIATION` for the changed source and artifacts. The
+`implementation_drift` → `IMPLEMENTATION` loop-back produces exactly that
+downstream sequence.
 
 ## 1. Executive Summary
 
-**Verdict: PASS.** The delivered result of US-001 is internally consistent,
-fully traceable, adequately documented, and ready for `HUMAN_PR_APPROVAL`.
+**Verdict: CHANGES_REQUIRED — loop back to `IMPLEMENTATION`
+(`implementation_drift`).**
 
-- **Acceptance Criteria:** 7 of 7 `RECONCILED` (see `traceability` matrix).
-  Every AC has an approved requirement, an implementation location, executable
-  test evidence, a passing result, an independent functional-verification
-  record, and an independent security-review record.
-- **Specification / designs vs implementation:** aligned. One endpoint
-  (`POST /api/v1/customers`), one table (`customer`), the `CustomerResponse`
-  field set, the error model, the security posture, and the persistence schema
-  all match the approved artifacts.
-- **Predicted vs actual impact:** the change surface matches
-  `US-001-impact-analysis.md` §5–§6. The two planned divergences (no
-  `JacksonConfig` class — property instead; no `local` profile) were disclosed
-  and justified in the plan; one supporting class (`InvalidPasswordException`)
-  was added for the FR-6 service re-check with the type the plan left
-  unspecified.
-- **Plan vs implementation:** every plan step C-1..C-16 and M-1..M-4 is
-  implemented; execution order followed.
-- **Verification / security currency:** `git diff fb833b0..HEAD -- src/` is
-  **empty** — no production code, test, build, or application-config file
-  changed after `IMPLEMENTATION`. `implementation_verification` (v1, PASS) and
-  `security_review` (v1, PASS) both remain current. Nothing triggers a
-  `BLOCKED` staleness condition.
-- **Findings:** 0 Critical, 0 Major, 5 Minor, 2 Informational (RC-1..RC-7). None
-  blocks PR preparation; none requires a code change for this Story. Every one
-  is carried from an upstream review and, where relevant, was explicitly
-  assigned to RECONCILIATION.
-- **PR candidate scope:** 50 files to include (28 code / build / config +
-  20 US-001 workflow-doc artifacts including this reconciliation pair +
-  2 harness state files). 12 files/paths excluded — all runtime artifacts,
-  IDE-local config, or pre-existing harness scaffolding. No secret, no generated
-  DB file, no unrelated source change is in the include set.
+The US-001 implementation remains functionally complete and, on the
+single-request paths, correct and secure — but the human review at
+`HUMAN_PR_APPROVAL` escalated three previously-Minor items to **required code
+changes** before a Pull Request. Those changes have not yet been made
+(`git diff 47e3016..HEAD -- src/` shows the original `IMPLEMENTATION` change set
+only; no correction commit exists). Reconciliation therefore cannot recommend
+progression.
 
-**Recommended next action:** `HUMAN_PR_APPROVAL` — a human reviews the diff and
-records the decision with `/so:approve` or `/so:reject`.
+- **Acceptance Criteria:** 5 of 7 `RECONCILED`; **AC-002 and AC-004 downgraded
+  to `PARTIALLY_RECONCILED`** in the `traceability` matrix because the human
+  made the concurrent-duplicate mapping (RC-3 / REJECT-4) and the
+  `RegistrationRequest.toString()` masking (RC-1 / REJECT-3) mandatory for this
+  Story rather than follow-up work. The security-posture row SEC-1 / SC-4 is
+  `PARTIALLY_RECONCILED` pending RC-9 / REJECT-5.
+- **REJECT-1 (report defect) fixed:** v1's front matter (`minor_findings: 5`,
+  `informational_findings: 2`) and Executive Summary ("RC-1..RC-7") disagreed
+  with the body, which carried **RC-1..RC-8 = 5 Minor + 3 Informational**. v2's
+  front matter, summaries, drift register (§16), findings (§17), verdict
+  rationale (§21), and result envelope are now internally consistent.
+- **REJECT-2 (stale artifact) resolved out-of-band:** `open_decisions.md` v2 +
+  `clarification-report.md` v2 published (uncommitted); OD-001..OD-006 all
+  `RESOLVED`, no decision content changed. Finding RC-4 moves to **RESOLVED**.
+- **REJECT-6 (PR accounting) fixed:** §15 now classifies every branch change
+  into (a) US-001 story, (b) harness-maintenance, (c) excluded, and names the
+  stray `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl`
+  (RC-10) — untracked, misplaced under `src/main`, must be removed from `src/`;
+  reconciliation surfaces it and does not delete it.
+- **Verification / security currency:** `implementation_verification` v1 and
+  `security_review` v1 were current *as of v1* (no `src/**` change after
+  `IMPLEMENTATION`) and remain so now — **but they are about to become stale**:
+  they consumed `open_decisions` **v1** (now superseded by v2), and the
+  REJECT-3/4/5 code changes will change security-sensitive files. Both re-runs
+  are already mandated by the human and are the natural consequence of the
+  `IMPLEMENTATION` loop-back; this is **not** a separate `BLOCKED` condition.
+- **Findings:** 0 Critical, **4 Major** (RC-1, RC-3, RC-9, RC-10), 2 Minor
+  (RC-2, RC-8), 3 Informational (RC-5, RC-6, RC-7). RC-4 and the REJECT-1 count
+  defect are **RESOLVED** in v2.
+- **PR candidate scope:** 51 tracked files INCLUDE — 48 US-001 story changes
+  (28 code / build / config incl. `.gitignore`, + 20 US-001 workflow-doc
+  artifacts) + 3 harness-maintenance (`docs/workflow/history.jsonl`,
+  `docs/workflow/workflow-state.yaml`, `docs/evidence/.gitignore`). 1 file
+  EXCLUDE and itemized: the stray untracked
+  `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl`
+  (RC-10). Standard git-ignored paths (`/data/`, `build/`, `.gradle/`,
+  `.idea/`, `docs/hooks/`, pre-existing `harness-*`) are not itemized. No
+  secret and no generated DB file is in the include set.
+
+**Recommended next action:** `IMPLEMENTATION` — `springboot-implementor`
+applies REJECT-3, REJECT-4, REJECT-5 (and removes the RC-10 stray file), then
+the workflow re-runs `IMPLEMENTATION_VERIFICATION` → `SECURITY_REVIEW` →
+`RECONCILIATION`.
 
 ## 2. Artifact Inventory
 
 | Artifact | Path | Type | Ver | Status | Current | Mandatory | Producing stage |
 |---|---|---|---|---|---|---|---|
 | Story | docs/stories/US-001-register-customer.md | story | (unversioned) | active | yes | yes | BACKLOG_SYNC / human |
-| Open Decisions | docs/decisions/US-001-open-decisions.md | open_decisions | 1 | DRAFT | yes (body stale — RC-4) | yes | CLARIFICATION |
-| Clarification Report | docs/evidence/US-001-clarification-report.md | clarification_report | 1 | (input) | yes | yes | CLARIFICATION |
+| Open Decisions | docs/decisions/US-001-open-decisions.md | open_decisions | **2** | **APPROVED** (all six RESOLVED) | yes | yes | CLARIFICATION |
+| Clarification Report | docs/evidence/US-001-clarification-report.md | clarification_report | **2** | APPROVED | yes | yes | CLARIFICATION |
 | Specification | docs/specifications/US-001-spec.md | specification | 1 | APPROVED | yes | yes | SPECIFICATION |
 | Specification Review | docs/reviews/specifications/US-001-spec-review.md | specification_review | 1 | APPROVED (PASS) | yes | yes | SPEC_REVIEW |
-| API Design | docs/designs/api/US-001-api-design.md | api_design | 1 | APPROVED | yes | yes | API_DESIGN |
+| API Design | docs/designs/api/US-001-api-design.md | api_design | 1 | APPROVED | yes | yes (RC-9 doc note pending) | API_DESIGN |
 | OpenAPI Contract | docs/designs/api/US-001-openapi.yaml | openapi | 1 | APPROVED | yes | yes | API_DESIGN |
 | DB Design | docs/designs/database/US-001-db-design.md | database_design | 1 | APPROVED | yes | yes | DB_DESIGN |
 | Entity Model | docs/designs/database/US-001-entity-model.md | entity_model | 1 | APPROVED | yes | yes | DB_DESIGN |
@@ -113,287 +160,204 @@ records the decision with `/so:approve` or `/so:reject`.
 | Implementation Plan | docs/plans/US-001-implementation-plan.md | implementation_plan | 1 | APPROVED (PASS + HUMAN_PLAN_APPROVAL) | yes | yes | IMPLEMENTATION_PLANNING |
 | Plan Review | docs/reviews/plans/US-001-plan-review.md | plan_review | 1 | APPROVED (PASS) | yes | yes | PLAN_REVIEW |
 | Test Strategy | docs/tests/US-001-test-strategy.md | test_strategy | 1 | DRAFT | yes | yes | TEST_WRITING |
-| AC–Test Matrix | docs/tests/US-001-ac-test-matrix.md | ac_test_matrix | 1 | DRAFT | yes | yes | TEST_WRITING |
+| AC–Test Matrix | docs/tests/US-001-ac-test-matrix.md | ac_test_matrix | 1 | DRAFT | yes (RC-1/RC-3 test additions pending) | yes | TEST_WRITING |
 | Test-Generation Report | docs/evidence/US-001-test-generation-report.md | test_generation_report | 1 | DRAFT | yes | yes | TEST_WRITING |
-| Implementation Report | docs/evidence/US-001-implementation-report.md | implementation_report | 1 | DRAFT | yes | yes | IMPLEMENTATION |
-| Implementation Verification | docs/verification/US-001-implementation-verification.md | implementation_verification | 1 | DRAFT (verdict PASS; envelope `artifact_status: APPROVED`) | yes | yes | IMPLEMENTATION_VERIFICATION |
-| Security Review | docs/reviews/security/US-001-security-review.md | security_review | 1 | APPROVED (PASS) | yes | yes | SECURITY_REVIEW |
-| Reconciliation | docs/reviews/reconciliation/US-001-reconciliation.md | reconciliation | 1 | this artifact | — | — | RECONCILIATION |
-| Traceability | docs/reconciliation/US-001-traceability.md | traceability | 1 | this artifact | — | — | RECONCILIATION |
+| Implementation Report | docs/evidence/US-001-implementation-report.md | implementation_report | 1 | DRAFT | yes (will be re-issued after the loop-back) | yes | IMPLEMENTATION |
+| Implementation Verification | docs/verification/US-001-implementation-verification.md | implementation_verification | 1 | DRAFT (verdict PASS) | **current now, will be stale after the loop-back** | yes | IMPLEMENTATION_VERIFICATION |
+| Security Review | docs/reviews/security/US-001-security-review.md | security_review | 1 | APPROVED (PASS) | **current now, will be stale after the loop-back** | yes | SECURITY_REVIEW |
+| Reconciliation | docs/reviews/reconciliation/US-001-reconciliation.md | reconciliation | **2** | this artifact (supersedes v1) | — | — | RECONCILIATION |
+| Traceability | docs/reconciliation/US-001-traceability.md | traceability | **2** | this artifact's pair (supersedes v1) | — | — | RECONCILIATION |
 
 - **Missing mandatory artifacts:** none.
-- **Duplicate current artifacts:** none.
-- **Stale artifacts:** none that block. `open_decisions` v1 body still shows
-  OD-001..OD-006 as `OPEN` (RC-4) — a documentation lag, not an unresolved
-  decision (see §3 and §19).
-- **Wrong Story id / wrong path / superseded reference:** none. Every downstream
-  artifact's `inputs` front matter records v1 of each upstream; no artifact is
-  `SUPERSEDED` or `ARCHIVED`.
+- **Duplicate current artifacts:** none. Reconciliation v1 / traceability v1 are
+  `supersedes` targets of this pair.
+- **Stale artifacts:** `open_decisions` v1 and `clarification_report` v1 are
+  superseded by v2 (resolves REJECT-2 / RC-4). `implementation_verification` v1
+  and `security_review` v1 recorded `open_decisions` **v1** in their `inputs`
+  and will additionally be invalidated by the REJECT-3/4/5 code changes — both
+  re-runs are mandated (see §12, §13, §14).
+- **Wrong Story id / wrong path / superseded reference:** none.
 
 ### Artifact chain validation
 
-The dependency chain Story → Specification → Spec Review → API/DB Designs →
-Design Review → Impact Analysis → Implementation Plan → Plan Review → Test
-artifacts → Implementation Report → Implementation Verification → Security
-Review is intact. Each artifact consumed the current (v1) version of every
-predecessor. `history.jsonl` records `SPEC_REVIEW` PASS, `DESIGN_REVIEW` PASS,
-`PLAN_REVIEW` PASS, `IMPACT_ANALYSIS` PASS, `IMPLEMENTATION` PASS,
-`IMPLEMENTATION_VERIFICATION` PASS, `SECURITY_REVIEW` PASS, and both human gates
-(`HUMAN_SPEC_APPROVAL` 2026-08-31T07:48:48Z, `HUMAN_PLAN_APPROVAL`
-2026-08-31T11:20:00Z). No approval was recorded against a version that was later
-superseded.
+Story → Specification → Spec Review → API/DB Designs → Design Review → Impact
+Analysis → Plan → Plan Review → Test artifacts → Implementation Report →
+Implementation Verification → Security Review is intact for the *content* of
+every artifact. `history.jsonl` records both human gates
+(`HUMAN_SPEC_APPROVAL` 2026-08-31T07:48:48Z with
+`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`,
+`HUMAN_PLAN_APPROVAL` 2026-08-31T11:20:00Z) and the `HUMAN_PR_APPROVAL`
+rejection (2026-09-01T08:41:01Z). The `open_decisions` v1→v2 supersession
+records the decisions the human already made at `HUMAN_SPEC_APPROVAL`; it does
+not invalidate any downstream approval because every downstream artifact was
+already built against those resolved values.
 
 ## 3. Source-of-Truth Review
 
 | Item | Finding |
 |---|---|
-| Story origin | `active-story.yaml` `source.type: local_only` (Story front matter says `github_issue` but `repository` / `issue_number` / `issue_url` are all `null`). No GitHub source is configured or reachable. |
-| Remote Issue inspected | No — there is no linked Issue. GitHub MCP not used (correctly — nothing to sync). |
-| Local Story | `docs/stories/US-001-register-customer.md` — the documented source of truth for this Story. |
-| Source-of-truth policy | `AGENTS.md` / `backlog-sync`: the local Story artifact is authoritative when no GitHub source exists. |
-| Synchronization differences | None to reconcile — single local source. |
+| Story origin | `active-story.yaml` `source.type: local_only`; no GitHub Issue configured or reachable. |
+| Remote Issue inspected | No — nothing to sync. GitHub MCP not used (correct). |
+| Local Story | `docs/stories/US-001-register-customer.md` — documented source of truth. |
+| Source-of-truth policy | Local Story artifact is authoritative when no GitHub source exists. |
+| Synchronization differences | None — single local source. |
 | Required action | None. No `story_source_conflict`; no `BACKLOG_SYNC` loop-back. |
 
 ## 4. Acceptance Criteria Traceability Matrix
 
-See `docs/reconciliation/US-001-traceability.md` (owned by this stage) for the
-full AC → Story → Specification → decision → API design → DB design → Impact
-Analysis → Plan step → production file/symbol → test → Implementation
-Verification → Security Review → final-status matrix.
+See `docs/reconciliation/US-001-traceability.md` v2 (owned by this stage).
 
-Summary: **AC-001..AC-007 all `RECONCILED`.** No `PARTIALLY_RECONCILED`, no
+Summary: **AC-001, AC-003, AC-005, AC-006, AC-007 `RECONCILED`;
+AC-002 `PARTIALLY_RECONCILED` (RC-3 / REJECT-4 concurrent-duplicate mapping now
+mandatory); AC-004 `PARTIALLY_RECONCILED` (RC-1 / REJECT-3
+`RegistrationRequest.toString()` masking + test now mandatory).** No
 `NOT_RECONCILED`, no `BLOCKED`.
 
 ## 5. Specification and Design Alignment
 
+Unchanged from v1 for the API contract, DTO field sets, error-body shape, and
+persistence schema — all still match the approved artifacts. One wording
+correction is now required:
+
 | Check | Result |
 |---|---|
-| Specification → OpenAPI | Consistent. `POST /api/v1/customers`, `application/json` + `415`, `RegistrationRequest {email, password}` with `additionalProperties: false`, `CustomerResponse {id, email, role, createdAt}`, `201` + `Location`, `400/409/415/500` `ErrorResponse` — all present and matching FR-1..FR-11 and §5 / §8. |
-| Specification → DB design | Consistent. FR-5 persisted fields ↔ `customer` columns; FR-4 / §6.1 uniqueness ↔ `uq_customer_email` + service lowercasing; PC-9 ↔ `password_hash VARCHAR(60)`; NFR-4 / BR-007 ↔ explicit mapping + UTC audit. |
-| Design → implementation (API) | Consistent. Controller path/method/`consumes`/`produces`, DTO records, validation annotations, `Location` construction, single `@RestControllerAdvice` — all as designed. Deviation RC-2 (error `message` strings vs illustrative OpenAPI examples) is documentation-direction only; body shape preserved. |
-| Design → implementation (persistence) | Consistent. `Customer` entity `@Column` set, `@UniqueConstraint(uq_customer_email)`, `EnumType.STRING`, `@CreatedDate`/`@LastModifiedDate` + `updatable=false`, `schema.sql` DDL — all match db-design §4.2 / §8.1 and entity-model §2. `ddl-auto=validate` boots clean (R-1 closed). |
-| Design does not introduce unsupported scope | Confirmed. The three DB choices (entity name `Customer`, `role` as an enum column, defensive CHECK/DEFAULT) were confirmed by `design_review` D-2/D-3/D-4; the unknown-field rejection was the choice Spec §6.3 delegated to API_DESIGN. Nothing else new. |
+| Specification → OpenAPI | Consistent (`POST /api/v1/customers`, `RegistrationRequest`/`CustomerResponse`, `201` + `Location`, `400/409/415/500`). |
+| Specification → DB design | Consistent (FR-5 fields ↔ `customer` columns; `uq_customer_email`; `password_hash VARCHAR(60)`; UTC audit). |
+| Design → implementation (API) | Consistent in shape/status/auth. Deviation RC-2 (error `message` strings vs illustrative OpenAPI examples) is documentation-direction, unchanged. |
+| Design → implementation (persistence) | Consistent. `ddl-auto=validate` boots clean (R-1 closed). |
+| **SC-4 wording (RC-9 / REJECT-5)** | `SecurityConfig` javadoc and `spec §7` describe the posture as "deny-by-default". `security-conventions.md` SC-4 actually defines deny-by-default as *"every endpoint requires authentication unless the approved API design lists it as public"* — i.e. **authentication-required by default**, which is exactly what `anyRequest().authenticated()` implements. The human requires this ambiguity resolved: either switch to a literal `denyAll()` for non-registration routes, or align the wording (code comment + spec/api-design note) to "authentication-required by default". Tests must match the chosen policy. |
 
 ## 6. Predicted Versus Actual Impact
 
-### Predicted items (impact-analysis §5, §6)
+No change from v1 for the delivered change set. The pending REJECT-3/4/5
+corrections will add: a `toString()` override (or Lombok/explicit masking) on
+`RegistrationRequest`; a `DataIntegrityViolationException` → `409` mapping in
+`GlobalExceptionHandler` (constrained to `uq_customer_email`) plus a
+catch/translate or `try`-around-`save` in `CustomerService`; a `SecurityConfig`
+wording change (and possibly a policy change); and new tests. All land in
+packages already predicted by `impact-analysis` §5–§6 (`model.request`,
+`exception`, `service`, `security`, and the test tree) — no new package, no new
+dependency expected.
 
-| Predicted | Confidence | Actual result | Note |
-|---|---|---|---|
-| All app packages Create (`controller`, `service`, `repository`, `model.*`, `validation`, `security`, `exception`, `config`) | HIGH | **Confirmed** | 16 production classes created in exactly these packages; no feature package (AD-8 / D-9 respected). |
-| `controller/CustomerController` | HIGH | Confirmed | C-13 |
-| `service/CustomerService` | HIGH | Confirmed | C-12 (name resolved from "CustomerService or RegistrationService") |
-| `repository/CustomerRepository` (`existsByEmail` / `findByEmail`) | HIGH | Confirmed | C-3 — both methods present |
-| `model/entity/{Customer, Role}` | HIGH | Confirmed | C-2, C-1 |
-| `model/request/RegistrationRequest` | HIGH | Confirmed | C-6 (Java `record`) |
-| `model/dto/{CustomerResponse, ErrorResponse, FieldError}` | HIGH | Confirmed | C-7, C-9, C-8 — `FieldError` → `ApiFieldError` (PD-5), serialized shape unchanged |
-| `validation/{ValidPassword, PasswordPolicyValidator}` | HIGH | Confirmed | C-4, C-5 — byte-measured |
-| `security/SecurityConfig` + `PasswordEncoder` bean | HIGH | Confirmed | C-14 — both beans in one class (PD-4) |
-| `exception/{DuplicateEmailException, GlobalExceptionHandler}` | HIGH | Confirmed | C-10, C-11 |
-| `config/JpaAuditingConfig` | HIGH | Confirmed | C-15 — `@EnableJpaAuditing` off the main class (AD-7) |
-| `config/JacksonConfig` (conditional) | MEDIUM | **Not needed — replaced by alternative** | `spring.jackson.deserialization.fail-on-unknown-properties: true` property (PD-1). Impact analysis marked the class conditional; property is minimal and AD-7-compliant. |
-| `schema.sql` | HIGH | Confirmed | C-16 |
-| `src/test/resources/application-test.yaml` | MEDIUM | Confirmed | C-17 (created by `test-writer`) |
-| `build.gradle.kts` + `spring-boot-starter-validation` | HIGH | Confirmed | M-1 — BOM-managed, confirmed at HUMAN_PLAN_APPROVAL |
-| `application.yaml` datasource + JPA + naming + console off | HIGH | Confirmed | M-2 |
-| `.gitignore` `/data/` | MEDIUM | Confirmed | M-3 |
-| `CustomerPortalApplicationTests` `@ActiveProfiles("test")` | MEDIUM | Confirmed | M-4 |
-| Possible `local` profile split | LOW | **Not needed** | plan chose a single `application.yaml` default; nothing required a `local` profile. |
-
-### Actual changed items not individually predicted
+### Actual changed items not individually predicted (unchanged from v1)
 
 | File / component | Classification | Justification |
 |---|---|---|
-| `exception/InvalidPasswordException` | Required Supporting Change | FR-6 / SC-1 require a service-layer password re-check "before hashing"; plan C-12 said "throw on failure" without naming the type. Domain exception in the `exception` package (AD-6), mapped to `400`, not reachable from the HTTP flow (request `@Valid` catches policy failures first). Disclosed as D-1; accepted by `implementation_verification` §15 and `security_review` §18. |
-| `src/test/.../persistence/CustomerSchemaTest.java` — 2 dummy-BCrypt-literal chars | Unexpected but Justified (test-fixture defect fix) | See RC-1 (below) / MF-1. `password_hash` is `VARCHAR(60)`; the pre-fix fixture inserted a 61-char literal that failed with "Value too long for column" before the constraint assertion could run (a false RED). `git diff f6e7eae..fb833b0 -- src/test/` confirms this is the **only** change to a `test-writer`-owned test; no assertion, scenario, or expected outcome changed. |
-| `.gitignore` `/docs/harness-consistency-review.md`; `docs/evidence/.gitignore` (4 harness entries) | Unrelated (pre-existing harness housekeeping) — committed in `c72ace3` | Not US-001. Adds ignore entries for pre-existing `harness-*` scaffolding. Recorded as RC-8 (Minor). Not security-relevant (`security_review` §17). |
-| `docs/workflow/history.jsonl`, `docs/workflow/workflow-state.yaml` | Generated / harness-managed | Owned by `story-orchestrator`; updated at every transition and will change again when this stage's transition is recorded. |
-
-No **Unexpected and Unapproved** change. No unrelated **source** change.
+| `exception/InvalidPasswordException` | Required Supporting Change | FR-6 / SC-1 service re-check; disclosed D-1; accepted by `implementation_verification` §15 and `security_review` §18. |
+| `src/test/.../persistence/CustomerSchemaTest.java` — 2 dummy-BCrypt-literal chars | Unexpected but Justified (test-fixture fix) | `git diff f6e7eae..fb833b0 -- src/test/` confirms this is the only change to a `test-writer`-owned test; no assertion/scenario/outcome changed. |
+| `.gitignore` `/docs/harness-consistency-review.md`; `docs/evidence/.gitignore` (4 `harness-*` entries + BOM) | **Harness-maintenance** — committed in `a96ebd5` ("Stage security_review completed") | Not US-001 functional scope. See §15 category (b). |
+| `docs/workflow/history.jsonl`, `docs/workflow/workflow-state.yaml` | Harness-maintenance — owned by `story-orchestrator` | Updated at every transition. See §15 category (b). |
+| `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl` | **EXCLUDE — misplaced runtime telemetry** (RC-10) | Untracked; a hook wrote tool-usage telemetry to a path that resolves under `src/main/java/...`. Not covered by the existing `/docs/hooks/tool-usage.jsonl` ignore rule (different path). Must be removed from `src/`; reconciliation does not delete it. |
 
 ## 7. Plan Versus Implementation
 
-| Plan step | State | Evidence |
-|---|---|---|
-| C-1 `Role` | Completed | `model/entity/Role.java` — `enum { CUSTOMER, ADMIN }` |
-| C-2 `Customer` | Completed | explicit `@Column`s, `@EntityListeners`, table-level `uq_customer_email`, `equals`/`hashCode` on `id`, `toString()` excludes `passwordHash` |
-| C-3 `CustomerRepository` | Completed | `existsByEmail` + `findByEmail` |
-| C-4 `ValidPassword` | Completed | static generic message `"Password does not meet the security policy."` |
-| C-5 `PasswordPolicyValidator` | Completed | UTF-8 byte length 12..72 + 4 char classes; `public static boolean isCompliant` reused by the service |
-| C-6 `RegistrationRequest` | Completed | `record`, `@NotBlank @Email @Size(max=254)` / `@NotBlank @ValidPassword`; no `@JsonIgnoreProperties` (PD-1) |
-| C-7 `CustomerResponse` | Completed | `record(Long id, String email, String role, OffsetDateTime createdAt)` |
-| C-8 `ApiFieldError` | Completed | `record(String field, String message)` (PD-5) |
-| C-9 `ErrorResponse` | Completed | `record`, `@JsonInclude(NON_EMPTY)`, `of(...)` helper |
-| C-10 `DuplicateEmailException` | Completed | `RuntimeException`, no HTTP concept |
-| C-11 `GlobalExceptionHandler` | Completed | single `@RestControllerAdvice`; validation→400+`fieldErrors`, `HttpMessageNotReadableException`→400 (one branch, PD-1), media-type→415, duplicate→409, invalid-password→400, fallback→500 |
-| C-12 `CustomerService` | Completed | `@Transactional register(...)`, `normalizeEmail` (`trim().toLowerCase(ROOT)`), byte re-check → `InvalidPasswordException`, `existsByEmail` guard → `DuplicateEmailException`, `passwordEncoder.encode`, private mapping (PD-3) |
-| C-13 `CustomerController` | Completed | `@PostMapping(consumes/produces JSON)`, `201` + `Location` via `ServletUriComponentsBuilder`, no error handling, no repository access, no entity in a signature |
-| C-14 `SecurityConfig` | Completed | scoped `REGISTRATION_ENDPOINT` matcher for both `permitAll` and `csrf.ignoringRequestMatchers`; `anyRequest().authenticated()`; `HttpStatusEntryPoint(401)` (plan-review F-3 recommendation adopted); `formLogin`/`httpBasic`/`logout` disabled; `BCryptPasswordEncoder` bean (PD-4) |
-| C-15 `JpaAuditingConfig` | Completed | `@EnableJpaAuditing(dateTimeProviderRef=...)`, UTC `DateTimeProvider`; not on the main class (AD-7) |
-| C-16 `schema.sql` | Completed | DB design §8.1 DDL; `GENERATED BY DEFAULT AS IDENTITY` with no explicit `NOT NULL` on `id` (D-5 / RC-7) |
-| C-17 `application-test.yaml` | Completed | created by `test-writer`; isolated in-memory H2, `validate`, `sql.init.mode=embedded`, console off, `fail-on-unknown-properties`, `open-in-view=false` |
-| M-1 `build.gradle.kts` | Completed | `+ spring-boot-starter-validation` (BOM-managed) |
-| M-2 `application.yaml` | Completed | H2 file datasource, `ddl-auto=validate`, snake_case naming, `sql.init.mode=always`, `h2.console.enabled=false`, `fail-on-unknown-properties=true`, `open-in-view=false` |
-| M-3 `.gitignore` | Completed | `+ /data/` (present since `fb833b0`) |
-| M-4 `CustomerPortalApplicationTests` | Completed | `+ @ActiveProfiles("test")` |
-
-No unimplemented plan step. No undocumented implementation step (the one
-supporting class is disclosed). No changed execution strategy beyond the
-disclosed PD-1 mechanism choice. No unapproved dependency change (the one added
-dependency is the AD-5-mandated first-party starter, confirmed at
-`HUMAN_PLAN_APPROVAL`). No unapproved configuration change. No hidden
-refactoring — the repository had only `CustomerPortalApplication` + one test
-before this Story.
+Every plan step C-1..C-16 and M-1..M-4 remains implemented as recorded in v1
+§7 (unchanged). The REJECT-3/4/5 corrections are *additions* to C-6 / C-11 /
+C-12 / C-14 and to the test set, driven by the human review rather than by a
+plan gap — the plan itself is not defective, so the loop-back is
+`implementation_drift`, not `plan_gap`.
 
 ## 8. Test Reconciliation
 
 | | Detail |
 |---|---|
-| Planned tests | `test-strategy` §4 levels + `ac-test-matrix` (`RED` / `GREEN (guard)` / `DEFERRED → IMPLEMENTATION` rows); plan skeletons C-T1..C-T6 (indicative). |
-| Actual tests | 7 suites, 62 tests: `registration.CustomerRegistrationApiTest` (22), `validation.PasswordPolicyValidatorTest` (17), `persistence.CustomerSchemaTest` (10), `service.CustomerServiceTest` (5), `security.RegistrationSecurityPostureTest` (4), `persistence.CustomerPersistenceTest` (3), `CustomerPortalApplicationTests` (1). |
-| Executed / result | `./gradlew clean build` — **BUILD SUCCESSFUL**; **62 tests, 0 failures, 0 errors, 0 skipped**. Independently reproduced by `implementation-verifier` v1 (§5, §6) from `build/test-results/test/*.xml`. |
-| AC coverage | Every AC-001..AC-007 has ≥1 web- or persistence-level test on the real stack (matrix §6). `DEFERRED` matrix rows (C-T1 policy matrix, C-T2 persistence invariants, C-T3 service internals) were all implemented and pass. |
-| Tests validating behaviour outside approved requirements | None found. Security tests use the real `SecurityFilterChain`; service tests use a real `BCryptPasswordEncoder`; persistence tests hit H2 `INFORMATION_SCHEMA`. `test-strategy` §5.5 asserts the plan-review F-3 recommendation (`401` for protected routes) as a deliberate tripwire — the implementation adopted that recommendation, so it passes. |
-| Stale evidence | None. No test or production file changed after `IMPLEMENTATION` (`git diff fb833b0..HEAD -- src/` empty), so the verifier's reproduction remains current. |
-| Extra / missing test behaviour | The concurrent-duplicate race (RC-3) has no test — accepted: no AC/design/plan covers concurrency and anti-abuse is out of scope (OD-005:A). |
+| Actual tests (as of `IMPLEMENTATION`) | 7 suites, 62 tests; `./gradlew clean build` BUILD SUCCESSFUL, 0 failures / 0 errors / 0 skipped — independently reproduced by `implementation-verifier` v1. |
+| Coverage gaps the human made mandatory | (a) **REJECT-3** — no test asserts that the submitted plaintext password is never rendered by `RegistrationRequest.toString()` / logging of the bound DTO; (b) **REJECT-4** — no test exercises the concurrent-duplicate race or asserts a `409` (not `500`) for a `uq_customer_email` violation. |
+| REJECT-5 test impact | `security.RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated` already asserts authentication-required-by-default; if the policy is changed to literal `denyAll()` the expected status for a protected route changes and this test must be updated. |
+| Stale evidence | The 62/62 result is valid for the current tree but will be superseded by the loop-back re-run. |
 
 ## 9. API Reconciliation
 
-| Contract element (openapi.yaml v1) | Implementation | Match |
-|---|---|---|
-| `POST /api/v1/customers`, `security: []`, public | `@RequestMapping("/api/v1/customers")` + `@PostMapping`; `SecurityConfig` `permitAll` for `POST /api/v1/customers` | ✅ |
-| `application/json` only, else `415` | `consumes = APPLICATION_JSON_VALUE`; `handleMediaType` → `415` | ✅ |
-| `RegistrationRequest {email, password}`, `additionalProperties: false` | `record RegistrationRequest(email, password)` + `fail-on-unknown-properties=true` | ✅ |
-| `email` `minLength 1` / `maxLength 254` / `format: email` | `@NotBlank @Email @Size(max=254)` | ✅ |
-| `password` `writeOnly`, 12–72, policy, service re-check | `@ValidPassword` (byte-measured) + service `isCompliant` re-check | ✅ (contract states a character max; 72 enforced as **bytes** per spec-review F-5 / DB Q-4 — expected, documented) |
-| `201` + `Location: /api/v1/customers/{id}` + `CustomerResponse` | `ResponseEntity.created(location).body(created)` | ✅ |
-| `CustomerResponse {id, email, role, createdAt}`, `role` enum `[CUSTOMER]` | matching `record`; `role.name()` = `"CUSTOMER"` | ✅ |
-| `400 / 409 / 415 / 500` `ErrorResponse` shape; `fieldErrors[]` only for field failures | `GlobalExceptionHandler` one branch per status; `ErrorResponse` `@JsonInclude(NON_EMPTY)` | ✅ |
-| `Location` target `GET /api/v1/customers/{id}` | not implemented by US-001 (design-review D-8) — header value correct and stable; future Story | ✅ (accepted) |
-
-**Deviation (RC-2, Minor, documentation-direction):** implemented `message`
-strings for `400` (one combined missing/malformed/unknown-field message) and
-`415` differ verbatim from the OpenAPI illustrative `examples`. The `409`
-message (`"An account with this email already exists."`) matches exactly. The
-AC-6 body **shape** — the normative part of the contract — is preserved, and
-every test asserts status + shape, not free text. The implemented messages are
-*more* generic, so no additional information is disclosed. Authority direction:
-**documentation may follow the implemented decision** (optional
-`openapi-designer` example alignment in a future revision); the implementation
-does not need to change.
+No contract-shape drift (v1 §9 table still holds). RC-2 (message-string vs
+illustrative-example difference) remains Minor / documentation-direction. RC-4's
+`409` message `"An account with this email already exists."` still matches the
+contract exactly. After REJECT-4, the concurrent-duplicate path will *also*
+return that `409` body — bringing runtime behaviour closer to the contract, not
+further from it.
 
 ## 10. Persistence Reconciliation
 
-| Element | DB design | Implementation | Runtime evidence | Match |
-|---|---|---|---|---|
-| `customer` table, hand-written `schema.sql`, `ddl-auto=validate` | §8, §8.1 | `src/main/resources/schema.sql`; `validate` both profiles | context boots clean on both profiles (`implementation_verification` §5, §9) | ✅ |
-| `id BIGINT` identity, `pk_customer` | §4.2 | `@Id @GeneratedValue(IDENTITY) @Column(nullable=false)`; `GENERATED BY DEFAULT AS IDENTITY` | `CustomerSchemaTest.idColumnIsBigintNotNull` | ✅ (RC-7 — `id` DDL has no explicit `NOT NULL`; H2 2.x implicit; `validate` passes) |
-| `email VARCHAR(254) NOT NULL`, `uq_customer_email` | §4.2, §4.3 | `@Column(length=254, nullable=false)`; `@UniqueConstraint(name="uq_customer_email")` | `CustomerSchemaTest.emailColumnIsVarchar254NotNull`, `.emailHasAUniqueConstraint` | ✅ |
-| `password_hash VARCHAR(60) NOT NULL` | §4.2 (PC-9) | `@Column(name="password_hash", length=60, nullable=false)` | `CustomerSchemaTest.passwordHashColumnIsVarchar60NotNull` | ✅ |
-| `role VARCHAR(20) NOT NULL`, `EnumType.STRING`, `ck_customer_role` | §4.2, §4.3 | `@Enumerated(STRING) @Column(length=20, nullable=false)`; CHECK in DDL | `CustomerSchemaTest.roleColumnIsNotNull`; `CustomerPersistenceTest.roleIsPersistedAsTheEnumName` | ✅ |
-| `enabled BOOLEAN NOT NULL` | §4.2 | `@Column(nullable=false) boolean enabled` | `CustomerSchemaTest.enabledColumnIsBooleanNotNull` | ✅ |
-| `created_at` / `updated_at` `TIMESTAMP WITH TIME ZONE NOT NULL`, UTC, `created_at` not updatable | §4.2 | `OffsetDateTime` + `@CreatedDate`/`@LastModifiedDate`; `created_at updatable=false`; UTC `DateTimeProvider` | `CustomerSchemaTest.auditTimestampColumnsAreTimeZoneAwareAndNotNull`; `CustomerPersistenceTest.auditingPopulatesBothTimestampsInUtc`, `.createdAtIsNotChangedByALaterUpdate` | ✅ |
-| Case-insensitive uniqueness (OD-006:A) | §5 | `CustomerService.normalizeEmail` before check + insert; plain `existsByEmail` | `duplicateEmailIsRejectedCaseInsensitivelyWith409`; `CustomerServiceTest.emailIsNormalisedToLowercaseAndTrimmedBeforeCheckAndSave` | ✅ |
-| `OffsetDateTime` ↔ `TIMESTAMP WITH TIME ZONE` under `validate` (R-1) | §8.1 note | maps clean on H2 2.x / Hibernate 7.4.5 | no `HHH` validation error at startup | ✅ R-1 CLOSED |
-| Generated `./data/*` files | §8 | `.gitignore` `/data/` | not committed, not in tree | ✅ |
-| `role` / `enabled` DDL `DEFAULT`, `ck_customer_role` CHECK | §4.3 / §10 (defensive, DDL-only) | present in `schema.sql`; entity always sets both explicitly | not verified by `validate` (as designed, design-review D-4) | ✅ (accepted) |
-
-Runtime schema evidence comes from H2 `INFORMATION_SCHEMA` assertions in
-`CustomerSchemaTest` against a booted datasource, not annotations alone.
+Unchanged from v1 §10 — every column, constraint, identity strategy, and audit
+behaviour matches DB design v1 / entity-model v1, verified by
+`CustomerSchemaTest` / `CustomerPersistenceTest` against a booted H2 datasource.
+RC-7 (`id` DDL has no explicit `NOT NULL`) stays Informational. REJECT-4 does
+**not** change the schema — `uq_customer_email` already exists and already
+prevents the duplicate row; only the exception-to-HTTP mapping changes.
 
 ## 11. Architecture Reconciliation
 
-| Rule | Evidence | Status |
-|---|---|---|
-| Layering `controller → service → repository → model.entity` (AD-2) | `CustomerController` imports `CustomerService` only; `CustomerService` → repository / model / exception / validation; `CustomerRepository` → `Customer` only | ✅ |
-| Controller: no business logic, no repository access, no entity in a signature (AD-2, AD-4) | `register(...)` takes `RegistrationRequest`, returns `ResponseEntity<CustomerResponse>`; no `repository` import in `controller/` | ✅ |
-| Service owns transactions (AD-3) | `@Transactional` on the public `register(...)` write method | ✅ |
-| DTO / entity boundary (AD-4) | request/response are `model.request` / `model.dto` records; `Customer` never on a controller signature; mapping in the service (PD-3) | ✅ |
-| Validation split (AD-5) | request-shape via Bean Validation + custom `@ValidPassword` in `validation`; uniqueness + password re-check in the service | ✅ |
-| Single `@RestControllerAdvice` (AD-6, AC-9) | exactly one — `exception/GlobalExceptionHandler`; controller builds no error body | ✅ |
-| Config boundaries (AD-7) | `JpaAuditingConfig` in `config`; `SecurityConfig` in `security`; settings in `application.yaml` / test profile | ✅ |
-| Package ownership (`package-map.md`) | `controller`, `service`, `repository`, `model/{entity,dto,request}`, `exception`, `validation`, `security`, `config` — no feature package (AD-8, D-9) | ✅ |
-| Reuse over duplication (AD-8) | no mapper class; one `SecurityConfig` for both beans; `PasswordPolicyValidator.isCompliant` reused by the service | ✅ |
-
-Method: import-graph + method-signature inspection
-(`semantic_analysis: TEXT_FALLBACK` — IDEA MCP semantic tools not invoked;
-consistent with `implementation_verification` §10 and `security_review` §4).
-Layering is unambiguous from imports; a PSI call-graph cross-check was not
-performed. No architecture drift.
+Unchanged from v1 §11 — layering, single `@RestControllerAdvice`, DTO/entity
+boundary, validation split, config placement, package ownership all conform
+(`semantic_analysis: TEXT_FALLBACK`; import-graph + signature inspection). The
+REJECT-3/4/5 corrections stay within the existing layers (DTO, exception
+handler, service, security config) — no architecture impact expected, to be
+re-confirmed at the re-run.
 
 ## 12. Security Reconciliation
 
 | Item | Detail |
 |---|---|
 | Security Review version | `docs/reviews/security/US-001-security-review.md` v1, `status: APPROVED`, verdict PASS (0 Critical, 0 Major, 4 Minor, 2 Informational). |
-| Security-sensitive files reviewed | `security/SecurityConfig`, `validation/*`, `exception/GlobalExceptionHandler`, `model/request/RegistrationRequest`, `model/dto/*`, `model/entity/Customer`, `application.yaml`, `application-test.yaml`, `schema.sql`, `.gitignore`, `build.gradle.kts`. |
-| Changes after Security Review | `git diff c72ace3..HEAD` = `.gitignore` (this session), the two new reconciliation artifacts, and workflow state — **no `src/**` change, no config change, no dependency change**. `git diff b26c4a9..HEAD -- src/` (after Implementation Verification) is also empty. |
-| Current evidence status | **Current.** `security_review` v1 and `implementation_verification` v1 both remain valid — no security-sensitive file changed after either. |
-| Security drift | None. SEC-1..SEC-11 all independently verified; security-sensitive Open Decisions (OD-002:B, OD-003:A, OD-005:A) human-resolved and correctly implemented. |
-| Carried security findings | RC-1 (`RegistrationRequest` `toString()`), RC-2 (message strings), RC-3 (concurrent duplicate → `500`), RC-4 (`open_decisions.md` stale), RC-5 / RC-6 (Informational: `AUTO_SERVER` + blank H2 credential — approved config). See §16 / §17. |
+| Changes after Security Review (as of now) | None to `src/**` yet — `git diff a96ebd5..HEAD -- src/` is empty. |
+| Currency now | v1 is still technically current as of this write. |
+| Currency after the loop-back | **Will be stale.** REJECT-3 (`RegistrationRequest`), REJECT-4 (`GlobalExceptionHandler` + `CustomerService`), and REJECT-5 (`SecurityConfig`) all touch files inside `security_review` v1's scope; and v1 consumed `open_decisions` v1. `SECURITY_REVIEW` must re-run — already mandated by the human. |
+| Security drift (behavioural) | RC-1 / REJECT-3: the record `toString()` renders the plaintext password — still **no reachable leak path today** (zero logger / `System.out` / `println` in `src/main`; `GlobalExceptionHandler` reads only `HttpServletRequest` + `BindingResult`), but the human has ruled the latent contradiction of SEC-3 unacceptable to ship. RC-9 / REJECT-5: SC-4 wording ambiguity. RC-3 / REJECT-4: concurrent duplicate → `500` (no enumeration or integrity impact; the constraint holds). |
 
-**No change was made after `security_review` that would make its evidence
-stale.** No `SECURITY_REVIEW` loop-back / `BLOCKED` condition applies.
+This stage returns `CHANGES_REQUIRED` (not `BLOCKED`) because no post-review
+change has actually been made yet — the loop-back is what triggers the changes
+and the mandated `SECURITY_REVIEW` re-run.
 
 ## 13. Configuration and Dependency Reconciliation
 
-| Item | Planned | Actual | Match |
-|---|---|---|---|
-| `spring-boot-starter-validation` | M-1 (BOM-managed, no explicit version) | present in `build.gradle.kts`, no version pin | ✅ (confirmed at HUMAN_PLAN_APPROVAL) |
-| Other dependencies | unchanged | `data-jpa`, `security`, `webmvc`, `h2`, `lombok` + test starters — unchanged | ✅ |
-| `application.yaml` | M-2 (datasource, `ddl-auto=validate`, snake_case naming, `sql.init.mode=always`, `h2.console.enabled=false`, `fail-on-unknown-properties=true`) | all present; `open-in-view: false` also added (impact §11 / test-strategy §6) | ✅ |
-| `application-test.yaml` | C-17 (isolated in-memory H2, `validate`, `sql.init.mode=embedded`, console off, `fail-on-unknown-properties`) | present, `open-in-view: false` also | ✅ |
-| `.gitignore` | M-3 (`/data/`) | `/data/` present since `fb833b0`; `/docs/harness-consistency-review.md` added later (RC-8) | ✅ (M-3) |
-| Secrets / env vars / ports / JVM | none | none; `datasource.password: ""` is the H2 default (RC-6, Informational) | ✅ |
-| `AUTO_SERVER=TRUE` in the default datasource URL | approved — DB design §8, plan M-2, impact analysis | present in `application.yaml`; test profile uses isolated in-memory H2 | ✅ (RC-5, Informational — future hardening recommendation) |
-
-No undocumented dependency. No undocumented configuration. Local-environment
-assumptions: file-based H2 under `./data/` for local runs (git-ignored),
-isolated in-memory H2 for tests — both as designed.
+Unchanged from v1 §13 — no undocumented dependency, no undocumented
+configuration. RC-5 / RC-6 (`AUTO_SERVER` + blank H2 credential) stay
+Informational / approved-config. No new dependency is expected for
+REJECT-3/4/5 (`spring-tx` `DataIntegrityViolationException` and
+`spring-security` are already on the classpath).
 
 ## 14. Documentation Reconciliation
 
 | Document | State | Authority direction |
 |---|---|---|
-| Specification v1 | Current — matches the implementation. | — |
-| OpenAPI contract v1 | Current for shapes / status codes / auth. Illustrative `400` / `415` `examples` differ from the implemented `message` strings (RC-2). | **Documentation may follow the implementation** — optional `openapi-designer` example alignment; not required. |
-| API design v1 / DB design v1 / entity model v1 | Current — match the implementation. | — |
-| `open_decisions.md` v1 | **Stale body** — OD-001..OD-006 still `status: OPEN` (RC-4). Authoritative resolutions (`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`) are in `history.jsonl` at `HUMAN_SPEC_APPROVAL` and applied consistently everywhere. | **Documentation must follow the recorded decision** — `us-clarifier` should publish v2 marking each `RESOLVED`. Already ruled non-blocking by the human at `HUMAN_PLAN_APPROVAL` ("Non-blocking: sync docs/decisions/US-001-open-decisions.md … owned by us-clarifier"). |
-| Architecture / convention docs | No edit required (impact-analysis §12); none was made. The CSRF exemption is recorded in API design §6 per SC-5, not in `architecture.md`. | — |
-| Implementation Report v1 | Materially consistent with observed evidence (`implementation_verification` §16). | — |
-| `README` / `AGENTS.md` | No change required; none made. | — |
+| `open_decisions.md` | **v2 — RESOLVED (REJECT-2 done).** All six decisions `status: RESOLVED` with the `HUMAN_SPEC_APPROVAL` options; change log records "no decision content changed". Currently uncommitted. | Documentation now follows the recorded decision. RC-4 **RESOLVED**. |
+| `clarification-report.md` | **v2** — Open-Decisions summary table shows `RESOLVED` + chosen option; no clarification content changed. | — |
+| Specification v1 §7 / API design v1 §6 | SC-4 posture described as "deny-by-default"; needs a one-line note that this means authentication-required-by-default (or a change record if literal `denyAll()` is chosen). RC-9 / REJECT-5. | Documentation must follow the resolved policy; coordinated with the IMPLEMENTATION loop-back. |
+| OpenAPI contract v1 | Illustrative `400` / `415` `examples` differ from implemented `message` strings (RC-2). | Documentation may follow the implementation — optional, not required. |
+| API design v1 / DB design v1 / entity model v1 (except the SC-4 note) | Current — match the implementation. | — |
+| Implementation Report v1 | Will be re-issued by the IMPLEMENTATION loop-back. | — |
 
-No document requires the implementation to change. Two documentation items
-(RC-2, RC-4) are follow-ups owned by `openapi-designer` and `us-clarifier`
-respectively.
+## 15. Pull Request Candidate Scope  (REJECT-6 — three-category accounting)
 
-## 15. Pull Request Candidate Scope
+**Counting convention:** one entry per **path**. `candidate_files` (51) = every
+tracked file in `git diff --name-status 47e3016..HEAD` (branch base = `main`
+merge-base `47e3016`); all of them are INCLUDE and split into category (a) or
+(b). `excluded_files` (1) = untracked paths present in the working tree that
+must be kept out of the PR **and** need an action — i.e. the RC-10 stray file.
+Standard git-ignored paths (`/data/`, `build/`, `.gradle/`, `.idea/`,
+`docs/hooks/`, pre-existing `harness-*`) are listed in (c) for completeness but
+not counted. Counts are **as of this write**; `docs/workflow/history.jsonl` and
+`docs/workflow/workflow-state.yaml` change again when the
+RECONCILIATION → IMPLEMENTATION transition is recorded (they stay in category
+(b)). `pr-preparer` consumes this classification and must not re-derive it.
 
-Classification convention: one row per path in `git diff --name-status
-origin/main..HEAD` plus the two reconciliation artifacts created by this stage.
-Counts are **as of this artifact's write time** — `docs/workflow/history.jsonl`
-and `docs/workflow/workflow-state.yaml` will change again when the RECONCILIATION
-→ HUMAN_PR_APPROVAL transition is recorded (still INCLUDE). `pr-preparer`
-consumes this classification and must not re-derive it.
-
-### Include (50)
+### (a) US-001 story changes — INCLUDE  (48 paths: 28 code/build/config + 20 workflow-doc)
 
 **Production / build / configuration (28)**
 
 - `src/main/java/org/example/customerportal/config/JpaAuditingConfig.java`
 - `src/main/java/org/example/customerportal/controller/CustomerController.java`
 - `src/main/java/org/example/customerportal/exception/DuplicateEmailException.java`
-- `src/main/java/org/example/customerportal/exception/GlobalExceptionHandler.java`
+- `src/main/java/org/example/customerportal/exception/GlobalExceptionHandler.java`  *(will change — REJECT-4)*
 - `src/main/java/org/example/customerportal/exception/InvalidPasswordException.java`
 - `src/main/java/org/example/customerportal/model/dto/ApiFieldError.java`
 - `src/main/java/org/example/customerportal/model/dto/CustomerResponse.java`
 - `src/main/java/org/example/customerportal/model/dto/ErrorResponse.java`
 - `src/main/java/org/example/customerportal/model/entity/Customer.java`
 - `src/main/java/org/example/customerportal/model/entity/Role.java`
-- `src/main/java/org/example/customerportal/model/request/RegistrationRequest.java`
+- `src/main/java/org/example/customerportal/model/request/RegistrationRequest.java`  *(will change — REJECT-3)*
 - `src/main/java/org/example/customerportal/repository/CustomerRepository.java`
-- `src/main/java/org/example/customerportal/security/SecurityConfig.java`
-- `src/main/java/org/example/customerportal/service/CustomerService.java`
+- `src/main/java/org/example/customerportal/security/SecurityConfig.java`  *(will change — REJECT-5)*
+- `src/main/java/org/example/customerportal/service/CustomerService.java`  *(will change — REJECT-4)*
 - `src/main/java/org/example/customerportal/validation/PasswordPolicyValidator.java`
 - `src/main/java/org/example/customerportal/validation/ValidPassword.java`
 - `src/main/resources/schema.sql`
@@ -401,16 +365,20 @@ consumes this classification and must not re-derive it.
 - `src/test/java/org/example/customerportal/CustomerPortalApplicationTests.java` (M — M-4)
 - `src/test/java/org/example/customerportal/persistence/CustomerPersistenceTest.java`
 - `src/test/java/org/example/customerportal/persistence/CustomerSchemaTest.java`
-- `src/test/java/org/example/customerportal/registration/CustomerRegistrationApiTest.java`
-- `src/test/java/org/example/customerportal/security/RegistrationSecurityPostureTest.java`
-- `src/test/java/org/example/customerportal/service/CustomerServiceTest.java`
+- `src/test/java/org/example/customerportal/registration/CustomerRegistrationApiTest.java`  *(will gain tests — REJECT-3/4)*
+- `src/test/java/org/example/customerportal/security/RegistrationSecurityPostureTest.java`  *(may change — REJECT-5)*
+- `src/test/java/org/example/customerportal/service/CustomerServiceTest.java`  *(will gain tests — REJECT-4)*
 - `src/test/java/org/example/customerportal/validation/PasswordPolicyValidatorTest.java`
 - `src/test/resources/application-test.yaml`
-- `build.gradle.kts` (M — M-1)
-- `.gitignore` (M — carries M-3 `/data/`; note: also contains one pre-existing harness line `/docs/harness-consistency-review.md` added in `c72ace3`, RC-8)
+- `build.gradle.kts` (M — M-1 `spring-boot-starter-validation`)
+- `.gitignore` (M) — **counted here** (28th path). Split hunks: the `/data/`
+  block is US-001 story scope (M-3, "Generated H2 database files"); the trailing
+  `/docs/harness-consistency-review.md` line is harness-maintenance (also listed
+  under (b), RC-8). One file, one path, counted once in (a).
 
-**US-001 workflow-doc artifacts (20)** — `docs/decisions/US-001-open-decisions.md`,
-`docs/evidence/US-001-clarification-report.md`,
+**US-001 workflow-doc artifacts (20)** —
+`docs/decisions/US-001-open-decisions.md` (v2),
+`docs/evidence/US-001-clarification-report.md` (v2),
 `docs/evidence/US-001-implementation-report.md`,
 `docs/evidence/US-001-test-generation-report.md`,
 `docs/specifications/US-001-spec.md`,
@@ -425,328 +393,366 @@ consumes this classification and must not re-derive it.
 `docs/tests/US-001-test-strategy.md`, `docs/tests/US-001-ac-test-matrix.md`,
 `docs/verification/US-001-implementation-verification.md`,
 `docs/reviews/security/US-001-security-review.md`,
-`docs/reviews/reconciliation/US-001-reconciliation.md` (this file),
-`docs/reconciliation/US-001-traceability.md` (this file's pair).
+`docs/reviews/reconciliation/US-001-reconciliation.md` (this file, v2),
+`docs/reconciliation/US-001-traceability.md` (this file's pair, v2).
+*(All of these will be re-issued or re-approved by the mandated re-run before
+the PR is finally assembled.)*
 
-**Harness state (2)** — `docs/workflow/history.jsonl` (M),
-`docs/workflow/workflow-state.yaml` (M). Harness-managed; part of the branch.
+### (b) Harness-maintenance changes — INCLUDE, but NOT US-001 functional scope  (3 paths + 1 shared hunk)
 
-### Exclude — Runtime Artifacts (3)
+- `docs/workflow/history.jsonl` (M) — `story-orchestrator` transition log.
+- `docs/workflow/workflow-state.yaml` (M) — `story-orchestrator` execution state.
+- `docs/evidence/.gitignore` (M) — 4 `harness-*` ignore entries + a BOM,
+  committed in `a96ebd5`. **No US-001 content.** Already on the branch;
+  reconciliation cannot remove a committed change — recorded so it is not
+  mistaken for Story scope. (RC-8)
+- `.gitignore` (M) — the `/docs/harness-consistency-review.md` hunk only
+  (committed in `a96ebd5`). The path itself is counted once in (a) (it also
+  carries M-3 `/data/`); this line notes the harness hunk within it. (RC-8)
 
-- `/data/` (generated H2 files — git-ignored, never in the tree)
-- `build/`, `.gradle/` (git-ignored)
+These are **present in the reviewed diff** and are described here as
+harness-maintenance, not as absent (correcting the v1 omission the human
+flagged in REJECT-6).
 
-### Exclude — Local Configuration (3)
+### (c) Excluded changes  (1 counted + standard ignores)
 
-- `.idea/`, `customer-portal.iml` (git-ignored IDE files)
-- `docs/hooks/` (git-ignored — `tool-usage.jsonl` telemetry)
+| Path | Classification | Counted | Reason |
+|---|---|---|---|
+| `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl` | **EXCLUDE — misplaced telemetry (RC-10)** | **yes (1)** | Untracked; hook telemetry written under `src/main/java/...`. Must be removed from `src/` (and the responsible hook path fixed). Reconciliation surfaces it; it does **not** delete it. Needs implementation/human action in the loop-back. |
+| `/data/` (generated H2 files) | EXCLUDE_RUNTIME_ARTIFACT | no | git-ignored (`/data/`), never in the tree. |
+| `build/`, `.gradle/` | EXCLUDE_RUNTIME_ARTIFACT | no | git-ignored. |
+| `.idea/`, `customer-portal.iml` | EXCLUDE_LOCAL_CONFIGURATION | no | git-ignored IDE files. |
+| `docs/hooks/tool-usage.jsonl` | EXCLUDE_LOCAL_CONFIGURATION | no | git-ignored telemetry (the *correctly*-placed one). |
+| pre-existing untracked `docs/evidence/harness-*.{py,md}`, `docs/harness-consistency-review.md` | EXCLUDE_UNRELATED | no | now git-ignored; outside US-001; left untouched. |
 
 ### Exclude — Sensitive Files (0)
 
-None. No `.env`, token, key, or credential file — tracked or untracked — is in
-scope.
+None. No `.env`, token, key, or credential file is in scope.
+`spring.datasource.password: ""` is the H2 default (RC-6), not a secret.
 
-### Exclude — Unrelated Changes (6)
+### Human Decision Required (1)
 
-- `docs/evidence/.gitignore` (M) — **already committed on the branch** in
-  `c72ace3`; pure harness scaffolding (ignore entries for pre-existing
-  `harness-*` files), no US-001 content. Recorded as RC-8 (Minor). Reconciliation
-  cannot "remove" an already-committed change; noted for human awareness.
-- `docs/evidence/harness-dryrun.py`, `docs/evidence/harness-migration-baseline.md`,
-  `docs/evidence/harness-migration-report.md`,
-  `docs/evidence/harness-post-migration-review.md`,
-  `docs/harness-consistency-review.md` — pre-existing, untracked (now git-ignored),
-  outside this Story, left untouched (`implementation_verification` §4,
-  `security_review` §17).
+- `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl` — the
+  human should confirm removal from `src/` and that the hook writing it is
+  reconfigured. Listed above as RC-10 / EXCLUDE.
 
-### Human Decision Required (0)
+**Totals:** `candidate_files: 51` = 48 category-(a) US-001 story paths
+(28 code/build/config + 20 workflow-doc) + 3 category-(b) harness-maintenance
+paths (`docs/workflow/history.jsonl`, `docs/workflow/workflow-state.yaml`,
+`docs/evidence/.gitignore`). `.gitignore` is a category-(a) path that also
+carries a harness hunk (counted once). `excluded_files: 1` = the RC-10 stray
+telemetry file; standard git-ignored paths are not counted.
 
-None. Scope is unambiguous.
-
-**Totals:** `candidate_files: 50`, `excluded_files: 12` (3 runtime + 3
-local-config + 6 unrelated; the 0 sensitive is included in the count as a
-category check, not a file).
+Cross-check against `git diff --name-status 47e3016..HEAD`: 51 tracked paths
+(2 root: `.gitignore` M, `build.gradle.kts` M; 16 `src/main/java`; 2
+`src/main/resources`; 7 `src/test/java`; 1 `src/test/resources`;
+20 `docs/**/US-001-*`; 3 harness: `docs/evidence/.gitignore` M,
+`docs/workflow/history.jsonl` M, `docs/workflow/workflow-state.yaml` M) —
+matches `candidate_files: 51`.
 
 ## 16. Drift Register
 
 | id | Type | Severity | Affected | Expected | Actual | Risk | Correction | Loop-back |
 |---|---|---|---|---|---|---|---|---|
-| RC-1 | Documentation / Security (latent) | Minor | `model/request/RegistrationRequest.java` | Plaintext password never emitted anywhere (SEC-3); `Customer.toString()` was hand-written to exclude `passwordHash` | `RegistrationRequest` is a `record` → generated `toString()` renders `password` | Low — no reachable leak path today (no logger / `System.out` / `println` in `src/main`; `GlobalExceptionHandler` never touches the bound DTO; no debug/SQL logging config) | Follow-up: custom masking `toString()` on `RegistrationRequest`, consistent with `Customer`. **Accepted-with-recommendation** for US-001. | none |
-| RC-2 | Documentation (API) | Minor | `exception/GlobalExceptionHandler.java`, `docs/designs/api/US-001-openapi.yaml` | Implemented `message` strings could match the OpenAPI examples | Implemented `400` (one combined message) and `415` messages differ verbatim from the illustrative examples; `409` matches exactly | None — examples are illustrative; AC-6 body shape preserved; implemented messages are more generic (less disclosure) | Optional: `openapi-designer` aligns the `400`/`415` examples in a future revision. Documentation-direction. | none |
-| RC-3 | Requirement-adjacent (robustness) | Minor | `service/CustomerService.java`, `exception/GlobalExceptionHandler.java` | (no approved artifact covers concurrency) | Check-then-act (`existsByEmail` → `save`); a concurrent duplicate trips `uq_customer_email` as an unmapped `DataIntegrityViolationException` → `500`, not `409` | Low — `uq_customer_email` still prevents the duplicate row; no data-integrity or enumeration impact beyond accepted OD-003:A; not a DoS vector | Follow-up Story: map `DataIntegrityViolationException` on `uq_customer_email` to `409`. Out of scope for US-001 (no AC / design / plan covers it; anti-abuse is OD-005:A out of scope). | none |
-| RC-4 | Artifact / Documentation | Minor | `docs/decisions/US-001-open-decisions.md` | Body reflects the recorded resolutions | All six still `status: OPEN`; recommended options "non-binding" | None to the implementation (uses the resolved values); a reader consulting only the file could be misled | `us-clarifier` publishes v2 marking OD-001..OD-006 `RESOLVED`. Human already ruled this non-blocking at `HUMAN_PLAN_APPROVAL`. | none (owner `us-clarifier` / CLARIFICATION; no `RECONCILIATION.loop_back` key reaches it, and it is not a genuine blocker) |
-| RC-5 | Configuration | Informational | `src/main/resources/application.yaml` | — | `AUTO_SERVER=TRUE` starts an H2 mixed-mode TCP listener guarded by a blank `sa` password | Low — **approved** config (DB design §8, plan M-2, impact analysis); local-dev only; training data only; test profile isolated in-memory | Future hardening Story: drop `AUTO_SERVER` or bind loopback + externalize an H2 password | none |
-| RC-6 | Secret management | Informational | `src/main/resources/application.yaml` | Config secrets externalized (SC-7) | `spring.datasource.password: ""` + `username: sa` committed | None — empty string is the H2 default, not a secret; SC-7 not breached | When a real datasource is introduced, externalize its credentials | none |
-| RC-7 | Persistence (DDL style) | Informational | `src/main/resources/schema.sql` | — | `id BIGINT GENERATED BY DEFAULT AS IDENTITY` with no explicit `NOT NULL` (H2 2.x rejects the clause before the identity clause) | None — H2 2.x makes identity columns implicitly `NOT NULL`; `ddl-auto=validate` passes; `CustomerSchemaTest.idColumnIsBigintNotNull` confirms | None. Documented in DB design §8.1 note / disclosed D-5. | none |
-| RC-8 | Scope (repository hygiene) | Minor | `.gitignore`, `docs/evidence/.gitignore` | Story change set contains only US-001 files | Two `.gitignore` files also carry pre-existing harness-scaffolding ignore entries, committed in `c72ace3` | None — no code, no secret, no runtime artifact; `security_review` §17 characterized these as pre-existing non-US-001 hygiene | None actionable by reconciliation (already committed). Noted for human diff review. | none |
+| RC-1 | Security (latent) / Test gap | **Major** (human-escalated from Minor) | `model/request/RegistrationRequest.java`; `CustomerRegistrationApiTest` | Plaintext password never rendered anywhere (SEC-3); `Customer.toString()` was hand-written to exclude `passwordHash` | `RegistrationRequest` is a `record` → generated `toString()` renders `password` | Low today (no reachable leak path) but the human requires it fixed before PR | Add a masking `toString()` to `RegistrationRequest` (consistent with `Customer`) + a test proving the submitted plaintext password is never rendered | `implementation_drift` → IMPLEMENTATION |
+| RC-2 | Documentation (API) | Minor | `exception/GlobalExceptionHandler.java`, `docs/designs/api/US-001-openapi.yaml` | Implemented `message` strings could match the OpenAPI examples | `400` (one combined message) and `415` messages differ verbatim from the illustrative examples; `409` matches | None — examples are illustrative; AC-6 shape preserved; implemented messages are more generic | Optional `openapi-designer` example alignment (documentation-direction) | none |
+| RC-3 | Robustness / error mapping / Test gap | **Major** (human-escalated from Minor) | `service/CustomerService.java`, `exception/GlobalExceptionHandler.java`; `CustomerServiceTest` / `CustomerRegistrationApiTest` | Duplicate email → `409` on every path | Check-then-act; a concurrent duplicate trips `uq_customer_email` as an unmapped `DataIntegrityViolationException` → `500` | Low integrity risk (constraint holds) but the human requires the `409` mapping before PR | Map `DataIntegrityViolationException` scoped to `uq_customer_email` → `409` without treating unrelated integrity violations as duplicate-email conflicts; deterministic test coverage | `implementation_drift` → IMPLEMENTATION |
+| RC-4 | Artifact / Documentation | **RESOLVED in v2** | `docs/decisions/US-001-open-decisions.md` | Body reflects the recorded resolutions | v2 published — all six `RESOLVED` (`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`), no decision content changed; uncommitted | None | Commit `open_decisions.md` v2 + `clarification-report.md` v2 as part of the PR | none (resolved) |
+| RC-5 | Configuration | Informational | `src/main/resources/application.yaml` | — | `AUTO_SERVER=TRUE` + blank `sa` password | Low — **approved** config (DB design §8, plan M-2); local-dev only; test profile isolated in-memory | Future hardening Story | none |
+| RC-6 | Secret management | Informational | `src/main/resources/application.yaml` | Config secrets externalized (SC-7) | `spring.datasource.password: ""` committed | None — H2 default, not a secret | Externalize when a real datasource is introduced | none |
+| RC-7 | Persistence (DDL style) | Informational | `src/main/resources/schema.sql` | — | `id BIGINT GENERATED BY DEFAULT AS IDENTITY` with no explicit `NOT NULL` | None — H2 2.x implicit; `validate` passes; `CustomerSchemaTest.idColumnIsBigintNotNull` confirms | None | none |
+| RC-8 | Scope (repository hygiene) | Minor | `.gitignore`, `docs/evidence/.gitignore` | Story change set contains only US-001 files | Both `.gitignore` files also carry harness-scaffolding entries, committed in `a96ebd5` | None — no code/secret/runtime artifact | Classified as harness-maintenance in §15(b); already committed, not removable by reconciliation; flagged for the human diff reviewer | none |
+| RC-9 | Design / Documentation (security wording) | **Major** (new — REJECT-5) | `security/SecurityConfig.java` javadoc; `spec §7`; `api-design §6`; `RegistrationSecurityPostureTest` | Unambiguous statement of the authorization policy consistent with SC-4 | Code/docs say "deny-by-default"; SC-4 defines that as authentication-required-by-default; `anyRequest().authenticated()` implements the latter, not a literal `denyAll()` | Low behavioural risk (posture is already secure) but the ambiguity is a required fix | Choose one policy: literal `denyAll()` for non-registration routes, OR align wording (comment + spec/api-design note) to "authentication-required by default". Update tests to match | `implementation_drift` → IMPLEMENTATION (+ coordinated doc note) |
+| RC-10 | Scope / repository hygiene | **Major** (new — REJECT-6) | `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl` | No non-source files under `src/main` | Untracked hook-telemetry file misplaced under `src/main/java/...`; not covered by the existing `/docs/hooks/tool-usage.jsonl` ignore rule | Low (build ignores a stray `.jsonl` under `java/`) but it must not enter the PR and must not sit in the source tree | Remove the file from `src/`; fix the hook's output path so telemetry lands under `docs/hooks/`. Reconciliation does **not** delete it | folded into the IMPLEMENTATION loop-back (human confirmation) |
 
-No Requirement Drift, no Design Drift (implementation follows the approved API /
-DB / architecture designs), no Plan Drift (every step implemented), no Test
-Drift (tests assert approved behaviour), no Security Drift (no security-sensitive
-change after `security_review`). Documentation Drift = RC-2, RC-4 (both
-follow-ups, neither requires an implementation change). Scope Drift = RC-8 (two
-harness-hygiene lines already on the branch; no source impact).
+Drift types present: **Security Drift** (RC-1 latent, RC-9 wording),
+**Documentation Drift** (RC-2, RC-9), **Test Drift / gap** (RC-1, RC-3),
+**Robustness** (RC-3), **Scope Drift** (RC-8 harness-maintenance, RC-10 stray
+file), **Artifact Drift** (RC-4 — now resolved). No Requirement Drift, no
+Design Drift in the API/DB contracts, no Plan Drift.
 
 ## 17. Findings
 
-### RC-1 — `RegistrationRequest` record `toString()` renders the plaintext password  (= SEC F-1 / IMPL_VERIFICATION MF-5)
+### RC-1 — `RegistrationRequest` record `toString()` renders the plaintext password  (Major; = REJECT-3, was v1 Minor / SEC F-1 / IMPL_VERIFICATION MF-5)
 
-- **Severity:** Minor. **Category:** documentation / data-exposure (latent).
-- **Evidence:** `model/request/RegistrationRequest.java` is a `record`; the
-  compiler-generated `toString()` includes every component, `password` among
-  them. `model/entity/Customer.toString()` was hand-written specifically to
-  exclude `passwordHash`.
+- **Severity:** Major (human-escalated). **Category:** security (latent) + test gap.
+- **Evidence:** `model/request/RegistrationRequest.java` is a `record` with
+  components `email`, `password`; the compiler-generated `toString()` renders
+  both. `model/entity/Customer.toString()` was hand-written to exclude
+  `passwordHash`; the request DTO has no equivalent guard.
 - **Impact:** SEC-3 / SC-1 intent is that the plaintext password is never
-  logged or placed on a response. A `toString()` that emits it is a latent
-  contradiction of that intent. **No reachable leak path exists today** —
-  independently confirmed by `implementation_verification` §12 and
-  `security_review` §7/§13: no logger, `System.out`, or `println` anywhere in
-  `src/main`; `GlobalExceptionHandler` reads only `HttpServletRequest` +
-  `BindingResult.getFieldErrors()`; controller and service never call
-  `request.toString()`; no debug/SQL logging config.
-- **Required correction:** none for US-001. **Recommendation:** a follow-up
-  change gives `RegistrationRequest` a custom masking `toString()` consistent
-  with `Customer`. Recorded here as **accepted-with-recommendation** per the
-  explicit hand-off from `security_review` F-1 and `implementation_verification`
-  MF-5.
-- **Responsible stage / loop-back:** none. Follow-up work item, not a US-001
-  defect.
+  logged or echoed. No reachable leak path exists today (independently
+  confirmed by `implementation_verification` §12 and `security_review` §7/§13:
+  no logger / `System.out` / `println` in `src/main`; `GlobalExceptionHandler`
+  reads only `HttpServletRequest` + `BindingResult.getFieldErrors()`). The
+  human has nonetheless ruled the latent contradiction unacceptable to ship.
+- **Required correction:** add a masking `toString()` to `RegistrationRequest`
+  (e.g. `email` shown, `password` rendered as `"***"`), consistent with
+  `Customer`; add a test asserting the submitted plaintext password never
+  appears in `RegistrationRequest.toString()` (and, ideally, that a log of the
+  bound object would not contain it).
+- **Responsible stage / loop-back:** `IMPLEMENTATION` (`implementation_drift`).
 
-### RC-2 — Implemented error `message` strings differ from the OpenAPI illustrative examples  (= SEC F-2 / IMPL_VERIFICATION MF-2 / IMPL D-4 / plan-review F-4)
+### RC-2 — Implemented error `message` strings differ from the OpenAPI illustrative examples  (Minor; = SEC F-2 / IMPL_VERIFICATION MF-2 / IMPL D-4 / plan-review F-4)
 
 - **Severity:** Minor. **Category:** documentation (API).
-- **Evidence:** implemented `415` message `"Content-Type must be
-  application/json."` vs contract example `"Content-Type 'text/plain' is not
-  supported."`; one combined `400` message
-  (`"The request body is missing, malformed, or contains an unknown field."`)
-  vs two contract examples. `409` matches exactly.
-- **Impact:** none. OpenAPI `examples` are explicitly illustrative, not
-  normative. The AC-6 body **shape** is preserved; all tests assert status +
-  shape. Implemented messages are more generic — no extra disclosure.
-- **Required correction:** none. Optional `openapi-designer` example alignment
-  in a future revision (documentation-direction).
+- **Evidence:** implemented `415` `"Content-Type must be application/json."` vs
+  contract example `"Content-Type 'text/plain' is not supported."`; one
+  combined `400` message vs two contract examples. `409` matches exactly.
+- **Impact:** none — `examples` are illustrative, not normative; AC-6 body
+  shape preserved; all tests assert status + shape; implemented messages are
+  more generic (no extra disclosure).
+- **Required correction:** none. Optional `openapi-designer` example alignment.
 - **Responsible stage / loop-back:** none.
 
-### RC-3 — Concurrent duplicate registration maps to `500`, not `409`  (= SEC F-3 / IMPL_VERIFICATION MF-3)
+### RC-3 — Concurrent duplicate registration maps to `500`, not `409`  (Major; = REJECT-4, was v1 Minor / SEC F-3 / IMPL_VERIFICATION MF-3)
 
-- **Severity:** Minor. **Category:** robustness / error mapping (edge).
+- **Severity:** Major (human-escalated). **Category:** robustness / error mapping + test gap.
 - **Evidence:** `CustomerService.register` guards duplicates with check-then-act
   (`existsByEmail` → `save`). Two simultaneous requests for the same new email
   can both pass the check; the second `save` throws
-  `DataIntegrityViolationException` (from `uq_customer_email`), which
-  `GlobalExceptionHandler` does not map → falls through to `handleUnexpected` →
-  `500`.
-- **Impact:** low. The unique constraint still prevents the duplicate row (data
-  integrity holds). The single-request duplicate path — the AC-002 requirement —
-  is correctly `409`. No approved artifact covers concurrency; anti-abuse /
-  rate-limiting is explicitly out of scope (OD-005:A).
-- **Required correction:** none for US-001. **Recommendation:** a follow-up
-  Story catches-and-translates `DataIntegrityViolationException` on
-  `uq_customer_email` to `409`.
-- **Responsible stage / loop-back:** none (not a requirements defect; not
-  `implementation_drift`).
+  `DataIntegrityViolationException` from `uq_customer_email`, which
+  `GlobalExceptionHandler` does not map → `handleUnexpected` → `500`.
+- **Impact:** the unique constraint still prevents the duplicate row; the
+  single-request AC-002 path is correctly `409`. The human requires the
+  concurrent path to also return `409`.
+- **Required correction:** catch `DataIntegrityViolationException` (in the
+  service, or map it in `GlobalExceptionHandler`) **scoped to the
+  `uq_customer_email` constraint** — inspect the constraint name / root cause so
+  an unrelated integrity violation is not misreported as a duplicate-email
+  `409`; fall back to `500` otherwise. Add deterministic test coverage (e.g. a
+  test that pre-inserts a row bypassing the service check, then calls
+  `register` with the same email and asserts `409`; optionally a real
+  concurrency test).
+- **Responsible stage / loop-back:** `IMPLEMENTATION` (`implementation_drift`).
 
-### RC-4 — `open_decisions.md` v1 still shows OD-001..OD-006 as `OPEN`  (= spec-review F-1 / IMPL_VERIFICATION MF-4 / SEC F-4 / plan-review F-1)
+### RC-4 — `open_decisions.md` stale (`OPEN`)  →  RESOLVED in v2  (= REJECT-2, was v1 Minor / spec-review F-1 / IMPL_VERIFICATION MF-4 / SEC F-4 / plan-review F-1)
 
-- **Severity:** Minor. **Category:** artifact / documentation lag.
-- **Evidence:** `docs/decisions/US-001-open-decisions.md` is `status: DRAFT`
-  with all six decisions `status: OPEN` and options "non-binding". The
-  authoritative resolutions (`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A
-  OD-006:A`) are recorded in `history.jsonl` at `HUMAN_SPEC_APPROVAL`
-  (2026-08-31T07:48:48Z) and applied consistently across the Specification, both
-  designs, the design review, the impact analysis, the plan, the plan review,
-  the tests, the implementation, the implementation verification, and the
-  security review.
-- **Impact:** none on the implementation, which uses the resolved values. A
-  reader consulting only the file could be misled. `AGENTS.md` treats a literal
-  `OPEN` marker as a blocker — but the decisions are *resolved*, authoritatively,
-  just not reflected in this one file, and the human explicitly ruled this
-  non-blocking at `HUMAN_PLAN_APPROVAL` ("Non-blocking: sync
-  docs/decisions/US-001-open-decisions.md with the approved resolutions …
-  owned by us-clarifier").
-- **Required correction:** `us-clarifier` publishes `open_decisions.md` v2
-  marking each decision `RESOLVED` with the chosen option. Not a
-  RECONCILIATION action (this stage must not resolve or edit Open Decisions).
-- **Responsible stage / loop-back:** `us-clarifier` (CLARIFICATION owns the
-  file). No `RECONCILIATION.loop_back` key targets CLARIFICATION, and this is
-  not a genuine blocker — so `loop_back_stage: null`, verdict stays PASS.
+- **Severity:** was Minor; now **RESOLVED**.
+- **Evidence:** `docs/decisions/US-001-open-decisions.md` v2 (status
+  `APPROVED`, `supersedes` v1) marks OD-001..OD-006 `RESOLVED` with
+  `resolved_by: ayubutrym@gmail.com (HUMAN_SPEC_APPROVAL)` and the options
+  `OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`; a change-log entry
+  records "No decision content changed". `docs/evidence/US-001-clarification-report.md`
+  v2 updates its Open-Decisions summary table to match. Both are uncommitted in
+  the working tree.
+- **Impact:** none — the implementation always used the resolved values. The
+  stale-artifact-in-PR concern the human raised is now addressed.
+- **Required correction:** commit both v2 files with the PR. No further action.
+- **Responsible stage / loop-back:** none (resolved). Produced out-of-band by
+  the `open_decisions` owner (`us-clarifier` / CLARIFICATION) after the
+  2026-09-02 orchestrator hold.
 
-### RC-5 — `AUTO_SERVER=TRUE` H2 listener with a blank `sa` password  (= SEC F-5)
+### RC-5 — `AUTO_SERVER=TRUE` H2 listener with a blank `sa` password  (Informational; = SEC F-5)
 
-- **Severity:** Informational. **Category:** configuration.
-- **Evidence:** default-profile datasource URL
-  `jdbc:h2:file:./data/customer-portal;AUTO_SERVER=TRUE`, `username: sa`,
-  `password: ""`.
-- **Impact:** low — **approved** configuration (DB design §8 line 172, plan
-  M-2, impact analysis §11); local-dev only; training data only; the test
-  profile uses isolated in-memory H2 with no server. Not exposed via the public
-  API.
-- **Required correction:** none. **Recommendation:** a future hardening Story
-  drops `AUTO_SERVER` (single-process access suffices) or binds it to loopback
-  and externalizes an H2 password.
-- **Responsible stage / loop-back:** none.
+- Unchanged from v1. **Approved** config (DB design §8, plan M-2, impact
+  analysis); local-dev only; test profile isolated in-memory. Future hardening
+  Story. No loop-back.
 
-### RC-6 — Empty datasource password committed in `application.yaml`  (= SEC F-6)
+### RC-6 — Empty datasource password committed in `application.yaml`  (Informational; = SEC F-6)
 
-- **Severity:** Informational. **Category:** secret management.
-- **Evidence:** `spring.datasource.password: ""` + `username: sa` are checked
-  in.
-- **Impact:** none — the empty string is the H2 default, not a secret; SC-7 is
-  not breached.
-- **Required correction:** none for US-001. When a real datasource is
-  introduced, its credentials must be externalized (SC-7).
-- **Responsible stage / loop-back:** none.
+- Unchanged from v1. Empty string is the H2 default, not a secret; SC-7 not
+  breached. Externalize when a real datasource is introduced. No loop-back.
 
-### RC-7 — `schema.sql` `id` column has no explicit `NOT NULL`  (= IMPL D-5)
+### RC-7 — `schema.sql` `id` column has no explicit `NOT NULL`  (Informational; = IMPL D-5)
 
-- **Severity:** Informational. **Category:** persistence (DDL style).
-- **Evidence:** `id BIGINT GENERATED BY DEFAULT AS IDENTITY` — no explicit
-  `NOT NULL` clause (H2 2.x rejects it before the identity clause; DB design
-  §8.1 note).
-- **Impact:** none — H2 2.x makes identity columns implicitly `NOT NULL`;
-  `ddl-auto=validate` passes on both profiles; `CustomerSchemaTest.idColumnIsBigintNotNull`
-  confirms `BIGINT` + not-nullable.
-- **Required correction:** none.
-- **Responsible stage / loop-back:** none.
+- Unchanged from v1. H2 2.x makes identity columns implicitly `NOT NULL`;
+  `ddl-auto=validate` passes; `CustomerSchemaTest.idColumnIsBigintNotNull`
+  confirms. No loop-back.
 
-### RC-8 — Two `.gitignore` files carry pre-existing harness-scaffolding entries  (from IMPL_VERIFICATION §4 / SEC §17)
+### RC-8 — Two `.gitignore` files carry harness-scaffolding entries  (Minor; from IMPL_VERIFICATION §4 / SEC §17)
 
 - **Severity:** Minor. **Category:** scope / repository hygiene.
-- **Evidence:** `.gitignore` gained `/docs/harness-consistency-review.md` and
-  `docs/evidence/.gitignore` gained four `harness-*` entries, committed in
-  `c72ace3` ("Stage security_review completed"). These ignore pre-existing
-  harness scaffolding, not US-001 output.
-- **Impact:** none — no code, no secret, no runtime artifact; the entries are
-  harmless and `security_review` §17 already characterized them as pre-existing
-  non-US-001 hygiene. `.gitignore` also legitimately carries M-3 (`/data/`), so
-  it stays in the PR include set.
+- **Evidence:** `.gitignore` gained `/docs/harness-consistency-review.md`;
+  `docs/evidence/.gitignore` gained `/harness-dryrun.py`,
+  `/harness-migration-baseline.md`, `/harness-migration-report.md`,
+  `/harness-post-migration-review.md` (+ a BOM). Both committed in `a96ebd5`
+  ("Stage security_review completed").
+- **Impact:** none — no code, no secret, no runtime artifact.
 - **Required correction:** none actionable by reconciliation (already
-  committed). Flagged for the human diff reviewer at `HUMAN_PR_APPROVAL` so the
-  two extra ignore lines are not mistaken for US-001 scope.
+  committed). Classified as **harness-maintenance** in §15(b) — explicitly
+  *present in the reviewed diff*, not absent (REJECT-6). Flagged for the human
+  diff reviewer so the entries are not read as US-001 scope.
 - **Responsible stage / loop-back:** none.
 
-**No Critical findings. No Major findings.**
+### RC-9 — SC-4 "deny-by-default" wording/behaviour ambiguity  (Major; new — REJECT-5)
+
+- **Severity:** Major. **Category:** security wording / documentation.
+- **Evidence:** `security/SecurityConfig.java` javadoc says
+  *"every other request requires authentication (deny-by-default, SC-4)"* and
+  implements `.anyRequest().authenticated()`. `security-conventions.md` SC-4
+  states *"Deny by default: every endpoint requires authentication unless the
+  approved API design lists it as public"* — i.e. authentication-required by
+  default, which `anyRequest().authenticated()` implements exactly. A literal
+  `denyAll()` would actually be *stricter* than SC-4 and would break any future
+  authenticated endpoint without an explicit allow rule.
+- **Impact:** no behavioural defect today — the posture is secure and
+  `RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated`
+  passes. The ambiguity is between the code comment / spec wording and the
+  implemented mechanism; the human requires it removed.
+- **Required correction (choose one, human/implementer decides):**
+  1. **Preferred — align wording:** change the `SecurityConfig` javadoc and add
+     a one-line note in `spec §7` / `api-design §6` that the approved policy is
+     "authentication-required by default (SC-4)"; keep
+     `anyRequest().authenticated()`. Existing tests already match.
+  2. **Literal `denyAll()`:** replace `anyRequest().authenticated()` with
+     `anyRequest().denyAll()` for non-registration routes; update
+     `RegistrationSecurityPostureTest` (a protected route would then be
+     unreachable even when authenticated) and note the deviation from SC-4.
+- **Responsible stage / loop-back:** `IMPLEMENTATION` (`implementation_drift`)
+  for the code/comment + test; coordinated documentation note in the spec /
+  API design. IMPLEMENTATION is the earliest stage where actual corrective work
+  occurs and matches the human's mandated re-run sequence
+  (`IMPLEMENTATION_VERIFICATION` → `SECURITY_REVIEW` → `RECONCILIATION`).
+
+### RC-10 — Stray hook-telemetry file under `src/main`  (Major; new — REJECT-6)
+
+- **Severity:** Major. **Category:** scope / repository hygiene.
+- **Evidence:** `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl`
+  exists on disk, untracked. A hook wrote tool-usage telemetry to a relative
+  path that resolved inside the Java source tree. The existing ignore rule
+  `/docs/hooks/tool-usage.jsonl` does not match this path.
+- **Impact:** low for the build (`javac` / resource processing ignore a
+  `.jsonl` under `java/`), but the file must not enter the PR and must not
+  remain in `src/`.
+- **Required correction:** delete
+  `src/main/java/org/example/customerportal/docs/` (the stray `docs` subtree
+  under the package root) and fix the hook so telemetry is written under the
+  repo-level `docs/hooks/`. **Reconciliation does not delete it** — it is
+  surfaced here for the IMPLEMENTATION loop-back / human confirmation.
+- **Responsible stage / loop-back:** folded into `IMPLEMENTATION`
+  (`implementation_drift`) with human confirmation; classified EXCLUDE in §15(c).
+
+**No Critical findings. 4 Major (RC-1, RC-3, RC-9, RC-10). 2 Minor (RC-2,
+RC-8). 3 Informational (RC-5, RC-6, RC-7). RC-4 RESOLVED. The v1 finding-count
+inconsistency (REJECT-1) is corrected throughout this document.**
 
 ## 18. Positive Alignment
 
-1. **Every Acceptance Criterion is `RECONCILED`** with an approved requirement,
-   an implementation location, executable test evidence on the real stack, a
-   passing result, an independent functional-verification record, and an
-   independent security-review record.
-2. **Change set == planned scope.** C-1..C-16 + M-1..M-4 exactly, plus one
-   disclosed supporting class (`InvalidPasswordException`) and one benign
-   2-character test-fixture fix. No unrelated source change.
-3. **Build + tests reproduced independently** by `implementation-verifier`:
-   `./gradlew clean build` BUILD SUCCESSFUL, 62 tests / 0 failures / 0 errors /
-   0 skipped.
-4. **Verification and security evidence are current** — `git diff
-   fb833b0..HEAD -- src/` is empty; nothing changed after `IMPLEMENTATION`.
-5. **Security posture verified end to end** — BCrypt (no no-op encoder);
-   plaintext password confined to the request DTO; zero logging in `src/main`;
-   `CustomerResponse` credential/internal-state isolation positively asserted;
-   deny-by-default authorization with one exact `permitAll` matcher; CSRF
-   exemption on the same single matcher; H2 console disabled every profile;
-   `ddl-auto=validate` every profile; mass assignment closed.
-6. **All six Open Decisions resolved by a human** and applied consistently
-   across every downstream artifact (design-review, plan-review, impl,
-   verification, security-review all confirm).
-7. **Risks R-1..R-8 all closed or owned** — R-1 (`OffsetDateTime` ↔ TZ type)
-   and R-6 (UTC auditing) verified closed; R-2 (CSRF scope), R-3 (byte bound),
-   R-7 (message hygiene) verified by SECURITY_REVIEW; R-5 (context boot) closed;
-   R-8 (scope) closed here.
-8. **Architecture clean** — layering, single advice, DTO/entity boundary,
-   config placement, package ownership all per `architecture.md` /
-   `package-map.md`.
+1. **Single-request behaviour is complete and correct** — AC-001, AC-003,
+   AC-005, AC-006, AC-007 fully `RECONCILED`; AC-002 correct on the
+   single-request path.
+2. **Build + 62 tests reproduced independently** by `implementation-verifier`
+   v1 (`./gradlew clean build` BUILD SUCCESSFUL, 0 failures / errors / skipped).
+3. **Security fundamentals verified** — BCrypt (no no-op encoder); plaintext
+   password confined to the request DTO and never persisted, logged, or
+   returned; `CustomerResponse` credential isolation positively asserted;
+   scoped `permitAll` + CSRF exemption on one exact matcher; H2 console
+   disabled every profile; `ddl-auto=validate` every profile.
+4. **All six Open Decisions resolved by the human** and now reflected in
+   `open_decisions.md` v2.
+5. **Persistence schema** matches DB design v1 exactly, verified against a
+   booted H2 datasource.
+6. **Architecture clean** — layering, single advice, DTO/entity boundary,
+   config placement, package ownership all conform.
+7. **PR scope is now fully accounted** (§15) in three categories with no
+   omission.
 
 ## 19. Open Decisions
 
-**No blocking Open Decisions were identified.** OD-001..OD-006 were all
-resolved by the human at `HUMAN_SPEC_APPROVAL` (`history.jsonl`
-2026-08-31T07:48:48Z: `OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`)
-and are applied consistently across every Story artifact and the implementation.
-The `open_decisions.md` file body still showing `OPEN` (RC-4) is a documentation
-lag owned by `us-clarifier`, explicitly ruled non-blocking by the human at
-`HUMAN_PLAN_APPROVAL` — not an unresolved decision.
+**No blocking Open Decisions remain.** OD-001..OD-006 were resolved by the
+human at `HUMAN_SPEC_APPROVAL` and are now recorded `RESOLVED` in
+`open_decisions.md` v2 (REJECT-2 / RC-4).
+
+REJECT-5 (RC-9) is **not** an Open Decision in the CLARIFICATION sense — the
+security *intent* (SC-4) is approved; what is open is a code-comment / spec
+wording alignment (or an optional policy tightening), which the human delegated
+to the implementer. It is routed as `implementation_drift`, not as a
+`CLARIFICATION` blocker.
 
 No unresolved `TODO` / `TBD` / `FIXME` / `???` / "to be decided" marker was
-found in any `APPROVED` input artifact that affects an Acceptance Criterion,
+found in an `APPROVED` input artifact affecting an Acceptance Criterion,
 observable behaviour, the API contract, persistence, security, validation,
 architecture, testing, configuration, dependency selection, or PR scope.
 
 ## 20. Reconciliation Limitations
 
 - **Semantic analysis:** IDEA MCP semantic tools not invoked
-  (`semantic_analysis: TEXT_FALLBACK`). Architecture / call-path conclusions
-  rest on import graphs and method signatures, consistent with
-  `implementation_verification` §10 and `security_review` §4. Layering is
-  unambiguous from imports; a PSI call-graph cross-check was not performed.
-- **Build / tests not re-run in this stage.** Build and test evidence
-  (`./gradlew clean build`, 62/62) is reused from `implementation_verification`
-  v1, which independently reproduced it. This stage confirmed via `git` that no
-  `src/**` file changed after `IMPLEMENTATION`, so that evidence is current.
-- **Runtime checks:** no application boot, no live HTTP probing, no live H2/TCP
-  reachability test performed by this stage (`runtime_checks` inherited PARTIAL
-  from `security_review`).
-- **Concurrency (RC-3)** is reasoned from code, not reproduced with a
-  concurrent test.
-- **No dependency vulnerability scanning** was performed at any stage — no CVE
-  claim is made about the resolved dependency tree.
-- **Remote source:** no GitHub Issue exists for US-001; remote/local Story
-  reconciliation is n/a.
-- **Human checks still required:** diff review and PR approval at
-  `HUMAN_PR_APPROVAL`.
+  (`semantic_analysis: TEXT_FALLBACK`) — architecture conclusions rest on
+  import graphs and method signatures, consistent with
+  `implementation_verification` §10 and `security_review` §4.
+- **Build / tests not re-run in this stage.** The 62/62 result is reused from
+  `implementation_verification` v1; it is valid for the current tree and will
+  be superseded by the loop-back re-run.
+- **Concurrency (RC-3)** is reasoned from code, not reproduced.
+- **No dependency vulnerability scanning** at any stage.
+- **Remote source:** no GitHub Issue for US-001; remote/local reconciliation
+  n/a.
+- **`open_decisions` v2 / `clarification-report` v2** are uncommitted working-
+  tree changes verified by direct read; they were produced out-of-band by the
+  `open_decisions` owner after the 2026-09-02 orchestrator hold, with no
+  `CLARIFICATION` stage event in `history.jsonl` (analogous to the recorded
+  "ORCHESTRATOR STATE REPAIR" precedent).
+- **Human checks still required:** the REJECT-5 policy choice; confirmation
+  that the RC-10 stray file is removed; diff review and PR approval.
 
 ## 21. Verdict Rationale
 
-Every Acceptance Criterion (AC-001..AC-007) is `RECONCILED` in the
-`traceability` matrix. The Specification and both designs align with the
-implementation; the differences from the impact analysis are the two disclosed,
-justified plan divergences plus one justified supporting class. The approved
-plan is materially implemented step-for-step. `implementation_verification` v1
-and `security_review` v1 are both current (verified: no `src/**` change after
-`IMPLEMENTATION`) and both `PASS`. The artifact chain is intact — every
-downstream artifact consumed the current v1 upstreams, no artifact is
-`SUPERSEDED`, both human gates are recorded. There are no Critical and no Major
-findings; the five Minor and two Informational findings (RC-1..RC-8) are latent,
-robustness, documentation, or approved-config items with no reachable exploit
-path and no requirement impact, and none maps to a `RECONCILIATION.loop_back`
-key. The PR candidate scope is identified (50 include / 12 exclude) with no
-secret, no generated database file, and no unrelated **source** change in the
-include set; the two harness-hygiene lines already on the branch (RC-8) are
-flagged for the human diff reviewer.
+The human review at `HUMAN_PR_APPROVAL` (2026-09-01) escalated three
+previously-Minor items — `RegistrationRequest.toString()` exposing the
+plaintext password (RC-1), the concurrent-duplicate `500` (RC-3), and the SC-4
+wording ambiguity (RC-9) — into **mandatory pre-PR code changes**, and added a
+repository-hygiene item (RC-10, the stray `src/main/.../docs/hooks/tool-usage.jsonl`).
+None of these corrections has been made: `git diff 47e3016..HEAD -- src/` is
+still the original `IMPLEMENTATION` change set. With required code changes
+outstanding, Reconciliation cannot find AC-002 and AC-004 fully `RECONCILED`
+and cannot recommend progression.
 
-No `implementation_drift`, `test_gap`, `plan_gap`, `design_gap`,
-`specification_gap`, or `story_source_conflict` condition exists, so no
-`CHANGES_REQUIRED` loop-back is warranted. No missing mandatory artifact, no
-stale mandatory input, no unresolved blocking Open Decision, no post-review
-change to verified code, and no pending human security decision, so no `BLOCKED`
-condition applies.
+The correct artifacts are in place — the Specification, both designs, the plan,
+and the tests are not defective; the gaps are in the implementation and its
+test coverage. Per `stage-map.yaml` `RECONCILIATION.loop_back`, that root cause
+maps to the key **`implementation_drift`** → **`IMPLEMENTATION`**. This is also
+the earliest stage at which corrective work actually happens (RC-9's wording
+fix is a `SecurityConfig` edit; the spec/api-design note is a coordinated
+follow-on, not a `specification_gap` requiring full re-approval), and it
+produces exactly the downstream sequence the human mandated:
+`IMPLEMENTATION` → `IMPLEMENTATION_VERIFICATION` → `SECURITY_REVIEW` →
+`RECONCILIATION`.
 
-**Verdict: PASS** → advance to `HUMAN_PR_APPROVAL`.
+The two report defects the human identified are fixed **in this document**:
+REJECT-1 (finding counts — now 0 Critical / 4 Major / 2 Minor / 3 Informational,
+RC-1..RC-10 with RC-4 resolved, consistent across front matter, §1, §16, §17,
+and the envelope) and REJECT-6 (PR accounting — §15 now has explicit (a) story
+/ (b) harness-maintenance / (c) excluded categories and names the stray file).
+REJECT-2 is resolved out-of-band (`open_decisions.md` v2). These do not by
+themselves require another RECONCILIATION-only loop; they are folded into the
+re-run that the code changes force.
+
+`implementation_verification` v1 and `security_review` v1 are still technically
+current as of this write (no `src/**` change yet) but consumed `open_decisions`
+v1 and will be invalidated by the REJECT-3/4/5 edits — their re-run is already
+mandated and is a consequence of the loop-back, **not** a separate `BLOCKED`
+condition, so this stage returns `CHANGES_REQUIRED`, not `BLOCKED`.
+
+**Verdict: CHANGES_REQUIRED** → loop back to `IMPLEMENTATION`
+(`implementation_drift`).
 
 ```yaml
 result:
-  verdict: PASS
+  verdict: CHANGES_REQUIRED
   stage: RECONCILIATION
   story: US-001
-  artifact_status: APPROVED
+  artifact_status: IN_REVIEW
   artifacts:
     - docs/reviews/reconciliation/US-001-reconciliation.md
     - docs/reconciliation/US-001-traceability.md
-  next_stage: HUMAN_PR_APPROVAL
-  loop_back_stage: null
+  next_stage: IMPLEMENTATION
+  loop_back_stage: IMPLEMENTATION            # stage-map.yaml RECONCILIATION.loop_back key: implementation_drift
   blocking_issues: []
   non_blocking_findings:
-    - "RC-1 (Minor, = SEC F-1 / IMPL_VERIFICATION MF-5): RegistrationRequest is a record - its generated toString() renders the plaintext password. No reachable leak path today (zero logger/System.out/println in src/main; GlobalExceptionHandler never touches the bound DTO; no debug/SQL logging config). Recorded ACCEPTED-WITH-RECOMMENDATION; follow-up: custom masking toString() consistent with Customer.toString()."
-    - "RC-2 (Minor, = SEC F-2 / IMPL_VERIFICATION MF-2 / IMPL D-4 / plan-review F-4): implemented 400 (one combined message) and 415 error message strings differ verbatim from the OpenAPI illustrative examples; 409 matches exactly, AC-6 body shape preserved, tests assert status+shape. Implemented messages are more generic - no extra disclosure. Optional openapi-designer example alignment (documentation-direction)."
-    - "RC-3 (Minor, = SEC F-3 / IMPL_VERIFICATION MF-3): CustomerService.register is check-then-act (existsByEmail then save); a concurrent duplicate trips uq_customer_email as an unmapped DataIntegrityViolationException -> 500 not 409. Constraint still prevents the duplicate row; no data-integrity/enumeration impact beyond accepted OD-003:A. No AC/design/test covers concurrency; anti-abuse out of scope (OD-005:A). Follow-up Story to map to 409."
-    - "RC-4 (Minor, = spec-review F-1 / IMPL_VERIFICATION MF-4 / SEC F-4 / plan-review F-1): docs/decisions/US-001-open-decisions.md v1 still shows OD-001..OD-006 as status: OPEN. Authoritative resolutions (OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A) are in history.jsonl at HUMAN_SPEC_APPROVAL and applied consistently everywhere; human explicitly ruled it non-blocking at HUMAN_PLAN_APPROVAL. us-clarifier to publish v2. Not a RECONCILIATION loop-back target."
-    - "RC-5 (Informational, = SEC F-5): default-profile datasource uses AUTO_SERVER=TRUE with sa / blank password - an H2 mixed-mode TCP listener with no credential. APPROVED config (DB design section 8 line 172, plan M-2, impact analysis); local-dev / training data only; test profile isolated in-memory. Future hardening Story: drop AUTO_SERVER or bind loopback + externalize an H2 password."
-    - "RC-6 (Informational, = SEC F-6): spring.datasource.password: \"\" + username sa committed in application.yaml. Empty string is the H2 default (not a secret), SC-7 not breached; externalize when a real datasource is introduced."
-    - "RC-7 (Informational, = IMPL D-5): schema.sql id column uses 'GENERATED BY DEFAULT AS IDENTITY' with no explicit NOT NULL (H2 2.x implicit; rejects the clause before the identity clause). ddl-auto=validate passes on both profiles; CustomerSchemaTest.idColumnIsBigintNotNull confirms BIGINT + not-nullable."
-    - "RC-8 (Minor, scope/hygiene): .gitignore (+ /docs/harness-consistency-review.md) and docs/evidence/.gitignore (+4 harness-* entries) were committed in c72ace3 and ignore pre-existing harness scaffolding, not US-001 output. No code/secret/runtime-artifact impact (security_review section 17). .gitignore also carries M-3 (/data/) so it stays in the PR. Flagged for the human diff reviewer at HUMAN_PR_APPROVAL."
-    - "Currency verified: git diff fb833b0..HEAD -- src/ is EMPTY - no production code, test, build, or application-config file changed after IMPLEMENTATION. implementation_verification v1 (PASS) and security_review v1 (PASS) both remain current; no BLOCKED staleness condition."
-    - "Traceability: AC-001..AC-007 all RECONCILED in docs/reconciliation/US-001-traceability.md (this stage owns it). 62 tests / 0 failures across 7 suites, independently reproduced by implementation-verifier v1."
-    - "PR candidate scope: 50 include (28 code/build/config + 20 US-001 workflow-doc artifacts incl. this reconciliation pair + 2 harness state files) / 12 exclude (3 runtime artifacts + 3 IDE-local + 6 pre-existing harness scaffolding). No secret, no generated DB file, no unrelated source change in the include set. Counts as-of-artifact-write; docs/workflow/{history.jsonl,workflow-state.yaml} change again when this transition is recorded."
-    - "Accepted deviations (from IMPLEMENTATION, re-confirmed): D-1 exception/InvalidPasswordException (FR-6 service re-check; plan C-12 left the type unspecified; domain exception in exception package, mapped to 400, not reachable from the HTTP flow); D-2 CustomerPersistenceTest uses @SpringBootTest not the indicative @DataJpaTest (all three C-T2 scenarios covered); MF-1 the only change to a test-writer-owned test is a benign 2-char BCrypt-literal fix in CustomerSchemaTest (git diff f6e7eae..fb833b0 -- src/test confirms), no assertion/scenario/outcome changed."
+    - "LOOP-BACK REASON (implementation_drift → IMPLEMENTATION): the HUMAN_PR_APPROVAL rejection (2026-09-01, ayubutrym@gmail.com) made three previously-Minor items mandatory pre-PR code changes; none is done (git diff 47e3016..HEAD -- src/ is the original IMPLEMENTATION change set)."
+    - "REJECT-3 / RC-1 (Major): RegistrationRequest is a Java record — generated toString() renders the plaintext password. Add a masking toString() consistent with Customer.toString() + a test proving the submitted plaintext password is never rendered. No reachable leak path today (zero logger/System.out/println in src/main) but the human requires it fixed before PR."
+    - "REJECT-4 / RC-3 (Major): CustomerService.register is check-then-act; a concurrent duplicate trips uq_customer_email as an unmapped DataIntegrityViolationException → 500. Map the uq_customer_email violation to the approved 409 (scoped to that constraint — do not misreport unrelated integrity violations as duplicate-email), fall back to 500 otherwise; add deterministic test coverage."
+    - "REJECT-5 / RC-9 (Major): SC-4 wording/behaviour ambiguity. security-conventions.md SC-4 defines deny-by-default as authentication-required-by-default, which anyRequest().authenticated() already implements; the SecurityConfig javadoc and spec §7 say 'deny-by-default'. Choose: (preferred) align the wording (code comment + spec §7 / api-design §6 note), or switch to literal denyAll() for non-registration routes. Tests must match the chosen policy."
+    - "REJECT-6 / RC-10 (Major): src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl is an untracked hook-telemetry file misplaced under src/main and not covered by the /docs/hooks/tool-usage.jsonl ignore rule. Remove the stray docs subtree from src/ and fix the hook's output path. Reconciliation did NOT delete it."
+    - "REJECT-1 (report defect) FIXED in reconciliation v2: v1 front matter (minor_findings: 5, informational_findings: 2) and Executive Summary (RC-1..RC-7) disagreed with the body (RC-1..RC-8 = 5 Minor + 3 Informational). v2 front matter/§1/§16/§17/§21/envelope are consistent: 0 Critical, 4 Major, 2 Minor, 3 Informational, RC-1..RC-10, RC-4 RESOLVED."
+    - "REJECT-2 / RC-4 (report item) RESOLVED out-of-band: docs/decisions/US-001-open-decisions.md v2 and docs/evidence/US-001-clarification-report.md v2 exist (status APPROVED; OD-001..OD-006 RESOLVED with OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A; no decision content changed). Currently uncommitted — commit both with the PR. Produced by the open_decisions owner (us-clarifier / CLARIFICATION); no CLARIFICATION stage event in history.jsonl."
+    - "REJECT-6 (report defect) FIXED in reconciliation v2 §15: PR accounting now has explicit categories (a) US-001 story changes, (b) harness-maintenance changes — docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore (4 harness-* entries + BOM, committed a96ebd5), the .gitignore /docs/harness-consistency-review.md line — described as PRESENT in the diff, and (c) excluded changes."
+    - "RC-2 (Minor, unchanged): implemented 400/415 error message strings differ verbatim from the OpenAPI illustrative examples; 409 matches exactly; AC-6 body shape preserved; implemented messages more generic. Optional openapi-designer example alignment."
+    - "RC-8 (Minor, unchanged): two .gitignore files carry pre-existing harness-scaffolding entries committed in a96ebd5 — classified harness-maintenance (§15b), already committed, not removable by reconciliation; flagged for the human diff reviewer."
+    - "RC-5 / RC-6 / RC-7 (Informational, unchanged): AUTO_SERVER=TRUE + blank sa password (approved config, local-dev only); spring.datasource.password: \"\" (H2 default, not a secret); schema.sql id column has no explicit NOT NULL (H2 2.x implicit, ddl-auto=validate passes)."
+    - "Post-correction sequence mandated by the human: after the code changes, rerun affected tests, then repeat IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, and RECONCILIATION. implementation_verification v1 and security_review v1 also consumed open_decisions v1 (now superseded by v2) and will be invalidated by the REJECT-3/4/5 edits — re-run required, not a separate BLOCKED."
+    - "Traceability v2: AC-001/AC-003/AC-005/AC-006/AC-007 RECONCILED; AC-002 PARTIALLY_RECONCILED (RC-3/REJECT-4); AC-004 PARTIALLY_RECONCILED (RC-1/REJECT-3); security-posture SEC-1/SC-4 PARTIALLY_RECONCILED (RC-9/REJECT-5)."
+    - "PR candidate scope (v2 §15, one entry per path): candidate_files 51 = 48 category-(a) US-001 story paths (28 code/build/config incl. .gitignore + 20 US-001 workflow-doc artifacts) + 3 category-(b) harness-maintenance paths (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore). excluded_files 1 = the RC-10 stray src/main/.../docs/hooks/tool-usage.jsonl; standard git-ignored paths not counted. Cross-checked against git diff --name-status 47e3016..HEAD. No secret, no generated DB file in the include set. Counts as-of-write; docs/workflow/{history.jsonl,workflow-state.yaml} change again when this transition is recorded."
+    - "Accepted deviations (from IMPLEMENTATION, re-confirmed): D-1 exception/InvalidPasswordException (FR-6 service re-check; plan C-12 left the type unspecified; mapped to 400, not reachable from the HTTP flow); D-2 CustomerPersistenceTest uses @SpringBootTest not @DataJpaTest; MF-1 the only change to a test-writer-owned test is a benign 2-char BCrypt-literal fix in CustomerSchemaTest, no assertion/scenario/outcome changed."
 ```

@@ -1,15 +1,17 @@
 ---
 artifact_type: clarification_report
 story: US-001
-version: 1
-status: DRAFT
+version: 2
+status: APPROVED
 created_at: 2026-08-31T00:33:59Z
-updated_at: 2026-08-31T00:33:59Z
+updated_at: 2026-09-02T13:14:34Z
 produced_by: us-clarifier
 inputs:
   - path: docs/stories/US-001-register-customer.md
     version: null
-supersedes: null
+  - path: docs/workflow/history.jsonl
+    version: null
+supersedes: docs/evidence/US-001-clarification-report.md
 ---
 
 # Clarification Report — US-001 Customer Registration
@@ -137,15 +139,18 @@ serves.
 
 All recorded in `docs/decisions/US-001-open-decisions.md`:
 
-| id | Summary | Affects | Status |
-|---|---|---|---|
-| OD-001 | Email max length + accepted format | SPECIFICATION, API_DESIGN, DB_DESIGN, TEST_WRITING | OPEN |
-| OD-002 | CSRF classification of the registration endpoint | SPECIFICATION, API_DESIGN, IMPLEMENTATION, SECURITY_REVIEW | OPEN |
-| OD-003 | Duplicate-email response vs. account enumeration | SPECIFICATION, API_DESIGN, SECURITY_REVIEW, TEST_WRITING | OPEN |
-| OD-004 | Fields in the successful `201` response body | SPECIFICATION, API_DESIGN | OPEN |
-| OD-005 | Anti-abuse controls on registration (scope check) | SPECIFICATION, SECURITY_REVIEW | OPEN |
-| OD-006 | Email normalization mechanism at persistence | DB_DESIGN | OPEN |
+| id | Summary | Affects | Status | Resolution |
+|---|---|---|---|---|
+| OD-001 | Email max length + accepted format | SPECIFICATION, API_DESIGN, DB_DESIGN, TEST_WRITING | RESOLVED | A |
+| OD-002 | CSRF classification of the registration endpoint | SPECIFICATION, API_DESIGN, IMPLEMENTATION, SECURITY_REVIEW | RESOLVED | B |
+| OD-003 | Duplicate-email response vs. account enumeration | SPECIFICATION, API_DESIGN, SECURITY_REVIEW, TEST_WRITING | RESOLVED | A |
+| OD-004 | Fields in the successful `201` response body | SPECIFICATION, API_DESIGN | RESOLVED | A |
+| OD-005 | Anti-abuse controls on registration (scope check) | SPECIFICATION, SECURITY_REVIEW | RESOLVED | A |
+| OD-006 | Email normalization mechanism at persistence | DB_DESIGN | RESOLVED | A |
 
-These do not block CLARIFICATION. They are resolved by a human at
-`HUMAN_SPEC_APPROVAL`. `spec-writer` should draft against the `recommended`
-options and mark each dependent statement as pending that decision.
+These did not block CLARIFICATION. They were resolved by the human at
+`HUMAN_SPEC_APPROVAL` (`docs/workflow/history.jsonl`, 2026-08-31T07:48:48Z:
+`OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A`) — see
+`docs/decisions/US-001-open-decisions.md` v2 for the full resolution record.
+Status column updated in this artifact's v2 (2026-09-02) so no stale artifact
+ships in the Pull Request; no clarification content changed.
