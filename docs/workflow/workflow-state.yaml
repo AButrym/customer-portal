@@ -4,50 +4,48 @@
 version: 1
 story: US-001
 workflow: story-delivery
-current_stage: IMPLEMENTATION
-previous_stage: RECONCILIATION
-last_completed_stage: SECURITY_REVIEW
+current_stage: IMPLEMENTATION_VERIFICATION
+previous_stage: IMPLEMENTATION
+last_completed_stage: IMPLEMENTATION
 status: IN_PROGRESS
-attempt: 2
-last_invoked_skill: reconciliation-reviewer
+attempt: 1
+last_invoked_skill: springboot-implementor
 last_result:
-  verdict: CHANGES_REQUIRED
-  stage: RECONCILIATION
-  recorded_at: 2026-09-02T14:02:21Z
+  verdict: PASS
+  stage: IMPLEMENTATION
+  recorded_at: 2026-09-02T14:52:00Z
 last_artifacts:
-  - type: reconciliation
-    path: docs/reviews/reconciliation/US-001-reconciliation.md
-    version: 2
-  - type: traceability
-    path: docs/reconciliation/US-001-traceability.md
+  - type: implementation_report
+    path: docs/evidence/US-001-implementation-report.md
     version: 2
 pending_human_gate: null
 blocking_issues: []
 non_blocking_findings:
-  - "RECONCILIATION v2 (attempt 2) = CHANGES_REQUIRED, loop_back_stage IMPLEMENTATION (key implementation_drift). reconciliation-reviewer superseded reconciliation v1 + traceability v1 (both were status: APPROVED in front matter but HUMAN_REJECTED at HUMAN_PR_APPROVAL 2026-09-01). v2 findings: 0 Critical, 4 Major (RC-1, RC-3, RC-9, RC-10), 2 Minor (RC-2, RC-8), 3 Informational (RC-5, RC-6, RC-7); RC-4 RESOLVED."
-  - "REJECT-3 / RC-1 (Major -> IMPLEMENTATION): RegistrationRequest is a Java record; generated toString() renders the plaintext password. Add a masking toString() consistent with Customer.toString() + a test proving the submitted plaintext password is never rendered. No reachable leak path today (zero logger/System.out/println in src/main) but the human requires it fixed before PR. AC-004 + SEC-3 now PARTIALLY_RECONCILED."
-  - "REJECT-4 / RC-3 (Major -> IMPLEMENTATION): CustomerService.register is check-then-act; a concurrent duplicate trips uq_customer_email as an unmapped DataIntegrityViolationException -> 500. Map the uq_customer_email violation to the approved 409 (scoped to that constraint - do not misreport unrelated integrity violations as duplicate-email), fall back to 500 otherwise; add deterministic test coverage. AC-002 now PARTIALLY_RECONCILED."
-  - "REJECT-5 / RC-9 (Major -> IMPLEMENTATION + doc note): SC-4 wording/behaviour ambiguity. security-conventions.md SC-4 defines deny-by-default as authentication-required-by-default, which anyRequest().authenticated() already implements; SecurityConfig javadoc + spec section 7 say 'deny-by-default'. Choose: (preferred) align the wording (SecurityConfig comment + spec section 7 / api-design section 6 note), or switch to literal denyAll() for non-registration routes. Tests must match. SEC-1/SC-4 now PARTIALLY_RECONCILED."
-  - "REJECT-6 / RC-10 (Major): src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl is an untracked hook-telemetry file misplaced under src/main, not covered by the /docs/hooks/tool-usage.jsonl ignore rule. Remove the stray docs subtree from src/ and fix the hook output path. reconciliation-reviewer did NOT delete it (out of its authority)."
-  - "REJECT-1 (report defect) FIXED in reconciliation v2: v1 front matter (minor_findings: 5, informational_findings: 2) + Executive Summary (RC-1..RC-7) disagreed with the body (RC-1..RC-8 = 5 Minor + 3 Informational). v2 front matter / section 1 / section 16 / section 17 / section 21 / envelope are consistent."
-  - "REJECT-2 / RC-4 RESOLVED out-of-band (2026-09-02, before this run): docs/decisions/US-001-open-decisions.md v2 + docs/evidence/US-001-clarification-report.md v2 exist (status APPROVED; OD-001..OD-006 RESOLVED with OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A; supersedes v1; no decision content changed; change log recorded). Produced by the open_decisions owner (us-clarifier / CLARIFICATION) after the 2026-09-02T13:14:34Z orchestrator hold; there is NO CLARIFICATION stage event in history.jsonl for it (analogous to the ORCHESTRATOR STATE REPAIR precedent below). Both files are currently uncommitted in the working tree; commit them with the PR."
-  - "REJECT-6 (report defect) FIXED in reconciliation v2 section 15: PR accounting now has explicit categories (a) US-001 story changes, (b) harness-maintenance changes (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore [4 harness-* entries + BOM, committed a96ebd5], the .gitignore /docs/harness-consistency-review.md line), (c) excluded changes - harness-maintenance is described as PRESENT in the reviewed diff, not absent. Candidate scope 49 include / 7 exclude."
-  - "Post-correction sequence mandated by the human (HUMAN_PR_APPROVAL rejection 2026-09-01): after the code changes, rerun affected tests, then repeat IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, and RECONCILIATION. implementation_verification v1 and security_review v1 also consumed open_decisions v1 (now superseded by v2) and will be invalidated by the REJECT-3/4/5 edits - re-run required, this is a consequence of the loop-back, not a separate BLOCKED."
-  - "IMPLEMENTATION on this loop-back must consume open_decisions v2 + clarification_report v2; and stay within scope (no GET /api/v1/customers/{id}, no login/UserDetailsService, no rate limiting - OD-005:A)."
-  - "CONTINUE-FLOW STEP 5 GUARD: docs/evidence/US-001-implementation-report.md is v1 / status DRAFT with no embedded CHANGES_REQUIRED record, but it is INVALIDATED by this loop-back - it was produced before the REJECT-3/4/5 items and records open_decisions v1. Do NOT let step 5 treat implementation_report v1 as a current valid output and short-circuit to IMPLEMENTATION_VERIFICATION. springboot-implementor MUST run for attempt 2 and supersede implementation_report as v2 covering REJECT-3/4/5 + RC-10 stray-file removal."
-  - "RC-2 (Minor, unchanged): implemented 400/415 error message strings differ verbatim from the OpenAPI illustrative examples; 409 matches exactly; AC-6 body shape preserved. Optional openapi-designer example alignment (documentation-direction)."
+  - "IMPLEMENTATION attempt 2 (loop_back from RECONCILIATION v2, key implementation_drift) = PASS. springboot-implementor superseded implementation_report v1 -> v2 (consumes open_decisions v2 + clarification_report v2). ./gradlew clean build BUILD SUCCESSFUL; 67 tests (was 62; +5), 0 failures/errors/skipped, 8 suites. Change set: 3 prod files + 2 test files modified, 1 new test class, 1 stray subtree deleted; no dependency/schema/config change; OD-005:A scope respected."
+  - "RC-1 / REJECT-3 DONE: RegistrationRequest.toString() masks password (password=***), consistent with Customer.toString(). New RegistrationRequestTest (3 tests) proves the submitted plaintext is never rendered and the password() accessor is unchanged. AC-004 -> RECONCILED."
+  - "RC-3 / REJECT-4 DONE: CustomerService.register catches DataIntegrityViolationException around save(), maps a uq_customer_email violation (constraint-scoped: Hibernate constraint name + message-token fallback) to DuplicateEmailException -> existing 409; any other integrity violation is rethrown unchanged. CustomerServiceTest +2 deterministic cases; negative case confirmed load-bearing. AC-002 -> RECONCILED (both single-request and concurrent paths)."
+  - "RC-9 / REJECT-5 DONE (code half): SecurityConfig javadoc + inline comment reworded 'deny-by-default' -> 'authentication-required by default (SC-4)'; anyRequest().authenticated() unchanged; RegistrationSecurityPostureTest unchanged (still green), one doc comment reworded. SEC-1/SC-4 code side -> RECONCILED."
+  - "RC-10 / REJECT-6 DONE (removal): deleted src/main/java/org/example/customerportal/docs/ (stray hooks/tool-usage.jsonl). No longer present in git status."
+  - "OPEN documentation-direction finding D-1 (RC-9 doc half, for spec-writer / openapi-designer): docs/specifications/US-001-spec.md section 7 (SEC-1 row) and docs/designs/api/US-001-api-design.md section 6/section 8 still say 'deny-by-default'; they need the one-line note that this means authentication-required-by-default per SC-4 (not literal denyAll()). Owned by those Skills, not IMPLEMENTATION. No behavioural impact."
+  - "OPEN finding D-2 (RC-10, for the human): the stray file was deleted but the hook that wrote tool-usage telemetry under src/main/java/... still needs its output path fixed to docs/hooks/ (and/or a broadened .gitignore rule). Hook configuration, out of implementation scope."
+  - "STALENESS WAIVER: specification v1 / implementation_plan v1 / ac_test_matrix v1 record open_decisions version 1 in front matter; open_decisions is now v2. open_decisions v2 change-log records 'No decision content changed' (same six option letters OD-001:A OD-002:B OD-003:A OD-004:A OD-005:A OD-006:A). stage-map gives IMPLEMENTATION no loop_back to SPECIFICATION; proceeding is correct. RECONCILIATION re-run should note, not re-open, the version references."
+  - "STATE CORRECTION (supersedes the prior 'currently uncommitted' claim): docs/decisions/US-001-open-decisions.md v2 and docs/evidence/US-001-clarification-report.md v2 are ALREADY COMMITTED in 7ad07e1 ('reconciliation transition commit'), together with reconciliation v2 + traceability v2 + the 2026-09-02 history/state entries. They must NOT be described as uncommitted in PR accounting (same defect class as REJECT-6, already rejected once)."
+  - "HUMAN-MANDATED POST-CORRECTION SEQUENCE (HUMAN_PR_APPROVAL rejection 2026-09-01): after the code changes -> rerun affected tests (DONE here) -> repeat IMPLEMENTATION_VERIFICATION -> SECURITY_REVIEW -> RECONCILIATION. implementation_verification v1 and security_review v1 consumed open_decisions v1 and predate RC-1/RC-3/RC-9/RC-10 -> both INVALIDATED, re-run required; this is a consequence of the loop-back, not a separate BLOCKED."
+  - "REJECT-1 (reconciliation v1 report defect) FIXED in reconciliation v2: front matter / section 1 / section 16 / section 17 / section 21 / result envelope are consistent (0 Critical, 4 Major, 2 Minor, 3 Informational, RC-1..RC-10, RC-4 RESOLVED)."
+  - "REJECT-6 (PR accounting) FIXED in reconciliation v2 section 15: explicit three categories (a) US-001 story changes, (b) harness-maintenance changes, (c) excluded changes; harness-maintenance is described as PRESENT in the reviewed diff. Candidate scope will shift again with this transition's history/state writes and the v2 implementation report + new/changed source files."
+  - "RC-2 (Minor, unchanged): implemented 400/415 error message strings differ verbatim from the OpenAPI illustrative examples; 409 matches exactly; AC-6 body shape preserved. Optional openapi-designer example alignment (documentation-direction, no loop-back)."
   - "RC-8 (Minor, unchanged): .gitignore + docs/evidence/.gitignore carry pre-existing harness-scaffolding entries committed in a96ebd5 - classified harness-maintenance (reconciliation v2 section 15b), already committed, not removable by reconciliation; flagged for the human diff reviewer."
   - "RC-5 / RC-6 / RC-7 (Informational, unchanged): AUTO_SERVER=TRUE + blank sa password (approved config - DB design section 8, plan M-2, local-dev only); spring.datasource.password: \"\" (H2 default, not a secret, SC-7 not breached); schema.sql id column 'GENERATED BY DEFAULT AS IDENTITY' no explicit NOT NULL (H2 2.x implicit, ddl-auto=validate passes)."
-  - "--- prior SECURITY_REVIEW (v1) findings retained ---"
-  - "SECURITY_REVIEW v1 PASS (0 Critical, 0 Major, 4 Minor, 2 Informational): SEC-1..SEC-11 independently verified in code/config/tests using the real SecurityFilterChain. runtime_checks PARTIAL, semantic_analysis TEXT_FALLBACK, NO dependency vulnerability scanning. Must be re-run after the REJECT-3/4/5 code changes and against open_decisions v2."
-  - "--- prior IMPLEMENTATION_VERIFICATION (v1) findings retained ---"
-  - "IMPL_VERIFICATION v1 PASS: ./gradlew clean build reproduced - BUILD SUCCESSFUL; 62 tests, 0 failures/errors/skipped across 7 suites; AC-001..AC-007 all VERIFIED. Must be re-run after the REJECT-3/4/5 code changes and against open_decisions v2."
+  - "--- prior SECURITY_REVIEW (v1) findings retained; v1 INVALIDATED by the RC-1/RC-3/RC-9/RC-10 changes + open_decisions v2, re-run pending ---"
+  - "SECURITY_REVIEW v1 PASS (0 Critical, 0 Major, 4 Minor, 2 Informational): SEC-1..SEC-11 independently verified in code/config/tests using the real SecurityFilterChain. runtime_checks PARTIAL, semantic_analysis TEXT_FALLBACK, NO dependency vulnerability scanning."
+  - "--- prior IMPLEMENTATION_VERIFICATION (v1) findings retained; v1 INVALIDATED by the RC-1/RC-3/RC-9/RC-10 changes + open_decisions v2, re-run pending ---"
+  - "IMPL_VERIFICATION v1 PASS: ./gradlew clean build reproduced - BUILD SUCCESSFUL; 62 tests, 0 failures/errors/skipped across 7 suites; AC-001..AC-007 all VERIFIED."
   - "R-1 CLOSED: OffsetDateTime <-> TIMESTAMP WITH TIME ZONE validates under ddl-auto=validate on H2 2.x / Hibernate ORM 7.4.5."
   - "R-3 CLOSED: password 12..72 bound measured in UTF-8 BYTES in both PasswordPolicyValidator and the service re-check."
   - "R-6 CLOSED: JpaAuditingConfig DateTimeProvider returns OffsetDateTime.now(ZoneOffset.UTC); CustomerPersistenceTest asserts UTC offset + created_at immutability."
   - "R-7 (SECURITY_REVIEW owns): @ValidPassword message is the fixed string 'Password does not meet the security policy.'; no-echo asserted by tests."
   - "ORCHESTRATOR STATE REPAIR (TEST_WRITING continue, 2026-08-31): docs/plans/US-001-implementation-plan.md front-matter status was DRAFT after PLAN_REVIEW + HUMAN_PLAN_APPROVAL; corrected to APPROVED, updated_at 2026-08-31T11:20:00Z. No version bump, no content change. (Retained for audit.)"
 started_at: 2026-08-30T23:50:01Z
-updated_at: 2026-09-02T14:02:21Z
+updated_at: 2026-09-02T14:52:00Z
 completed_at: null
 archived_at: null

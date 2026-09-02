@@ -55,7 +55,7 @@ class RegistrationSecurityPostureTest {
                 .andExpect(status().is(org.hamcrest.Matchers.not(403)));
     }
 
-    /** SC-4 / SEC-1: every other route stays deny-by-default. */
+    /** SC-4 / SEC-1: every other route is authentication-required by default — an unauthenticated call gets 401. */
     @Test
     void protectedRouteReturns401WhenUnauthenticated() throws Exception {
         mockMvc.perform(get(PATH + "/1"))
