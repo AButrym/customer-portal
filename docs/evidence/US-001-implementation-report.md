@@ -1,16 +1,18 @@
 ---
 artifact_type: implementation_report
 story: US-001
-version: 1
+version: 2
 status: DRAFT
 created_at: 2026-08-31T12:07:06Z
-updated_at: 2026-08-31T12:07:06Z
+updated_at: 2026-09-02T14:45:00Z
 produced_by: springboot-implementor
 inputs:
   - path: docs/stories/US-001-register-customer.md
     version: null
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
+    version: 2
+  - path: docs/evidence/US-001-clarification-report.md
+    version: 2
   - path: docs/specifications/US-001-spec.md
     version: 1
   - path: docs/reviews/specifications/US-001-spec-review.md
@@ -35,45 +37,49 @@ inputs:
     version: 1
   - path: docs/tests/US-001-ac-test-matrix.md
     version: 1
-supersedes: null
+  - path: docs/reviews/reconciliation/US-001-reconciliation.md
+    version: 2
+supersedes: docs/evidence/US-001-implementation-report.md
 tests_status: PASS
 build_status: PASS
 diagnostics_status: PASS
 security_sensitive: true
 ---
 
-# Implementation Report — US-001 Customer Registration
+# Implementation Report — US-001 Customer Registration (v2, corrective pass)
 
 ## 1. Summary
 
-Public self-service customer registration is implemented exactly as fixed by the
-approved artifacts: one endpoint `POST /api/v1/customers` that validates `email`
-and `password` server-side, rejects a duplicate email case-insensitively with
-`409`, stores a BCrypt hash, creates an enabled `CUSTOMER` account with UTC audit
-timestamps, and returns `201` + `Location` + a credential-free body.
+This is a **corrective implementation pass** (attempt 2), loop-back from
+`RECONCILIATION` v2 (key `implementation_drift`) after the `HUMAN_PR_APPROVAL`
+rejection of 2026-09-01. The registration feature delivered in v1 is unchanged;
+this pass applies exactly the four code/hygiene corrections the human made
+mandatory pre-PR and adds their test coverage.
 
-- **Implementation status:** complete. All 14 planned production files (C-1..C-16
-  plus one supporting exception class) and all 4 planned modifications
-  (M-1..M-4) are done, in the plan's execution order.
-- **Validation status:** `./gradlew clean build` = **BUILD SUCCESSFUL**; **62
-  tests, 0 failures, 0 errors**; `ddl-auto=validate` boots clean on both the
-  `test` (in-memory) and default (file H2) profiles.
-- **Limitations / deviations:** three, all minor and disclosed in §7 — one new
-  domain exception for the FR-6 service re-check (`InvalidPasswordException`);
-  `CustomerPersistenceTest` uses `@SpringBootTest` instead of the plan-skeleton
-  `@DataJpaTest`; and a malformed 61-character dummy BCrypt literal in the
-  committed `CustomerSchemaTest` fixture was corrected to 60 characters (no
-  assertion changed).
-- **Open Decisions:** none touched, none newly required. OD-001..OD-006 remain
-  as resolved at `HUMAN_SPEC_APPROVAL` (OD-001:A, OD-002:B, OD-003:A, OD-004:A,
-  OD-005:A, OD-006:A) and were applied as-is.
+| Item | Finding | Change | Status |
+|---|---|---|---|
+| 1 | RC-1 / REJECT-3 (Major) — record `RegistrationRequest.toString()` renders the plaintext password | Added a masking `toString()` (`password=***`), consistent with `Customer.toString()`; new `RegistrationRequestTest` | Done |
+| 2 | RC-3 / REJECT-4 (Major) — concurrent duplicate trips `uq_customer_email` → unmapped `DataIntegrityViolationException` → `500` | `CustomerService.register` now maps a `uq_customer_email` violation (constraint-scoped) to `DuplicateEmailException` → existing `409`; any other integrity violation propagates unchanged; 2 new deterministic `CustomerServiceTest` cases | Done |
+| 3 | RC-9 / REJECT-5 (Major, code half) — "deny-by-default" wording vs `anyRequest().authenticated()` | Aligned `SecurityConfig` javadoc + inline comment to "authentication-required by default (SC-4)"; behaviour and tests unchanged (option 1, the reconciliation's preferred path); one test comment reworded | Done (code); spec §7 / api-design §6 note is a documentation-direction finding for their owners — see §7 |
+| 4 | RC-10 / REJECT-6 (Major, file removal) — stray `src/main/java/org/example/customerportal/docs/hooks/tool-usage.jsonl` | Deleted the stray `docs/` subtree under the package root | Done; hook output-path fix is a finding for the human — see §7 |
+
+- **Validation status:** `./gradlew clean build` = **BUILD SUCCESSFUL**;
+  **67 tests, 0 failures, 0 errors, 0 skipped** across 8 suites (was 62; +5:
+  3 `RegistrationRequestTest`, 2 `CustomerServiceTest`).
+- **Scope:** OD-005:A respected — no `GET /api/v1/customers/{id}`, no
+  login / `UserDetailsService`, no rate limiting. No new dependency. No schema
+  change (`uq_customer_email` already exists). No configuration change.
+- **Open Decisions:** consumed `open_decisions` **v2** + `clarification_report`
+  **v2** (both `APPROVED`, committed in `7ad07e1`): OD-001:A OD-002:B OD-003:A
+  OD-004:A OD-005:A OD-006:A, all `RESOLVED`. None touched, none newly required.
 
 ## 2. Source Artifacts
 
 | Artifact | Path | Version | Status |
 |---|---|---|---|
 | Story | `docs/stories/US-001-register-customer.md` | (unversioned) | IN_PROGRESS |
-| Open Decisions | `docs/decisions/US-001-open-decisions.md` | 1 | DRAFT (resolutions authoritative via `history.jsonl`) |
+| Open Decisions | `docs/decisions/US-001-open-decisions.md` | 2 | APPROVED (OD-001..OD-006 RESOLVED; supersedes v1) |
+| Clarification Report | `docs/evidence/US-001-clarification-report.md` | 2 | APPROVED (supersedes v1) |
 | Specification | `docs/specifications/US-001-spec.md` | 1 | APPROVED |
 | Specification Review | `docs/reviews/specifications/US-001-spec-review.md` | 1 | APPROVED (PASS) |
 | API Design | `docs/designs/api/US-001-api-design.md` | 1 | APPROVED |
@@ -86,196 +92,156 @@ timestamps, and returns `201` + `Location` + a credential-free body.
 | Plan Review | `docs/reviews/plans/US-001-plan-review.md` | 1 | APPROVED (PASS) |
 | Test Strategy | `docs/tests/US-001-test-strategy.md` | 1 | DRAFT |
 | AC-Test Matrix | `docs/tests/US-001-ac-test-matrix.md` | 1 | DRAFT (authoritative AC→test map) |
+| Reconciliation (loop-back source) | `docs/reviews/reconciliation/US-001-reconciliation.md` | 2 | CHANGES_REQUIRED (RC-1/RC-3/RC-9/RC-10) |
 
-No consumed input is `SUPERSEDED`. No staleness detected.
+No consumed input is `SUPERSEDED`.
 
-## 3. Implemented Acceptance Criteria
+**Staleness note (waiver):** `specification` v1, `implementation_plan` v1 and
+`ac_test_matrix` v1 record `open_decisions` version 1 in their front matter,
+while `open_decisions` is now v2. `open_decisions` v2 records "No decision
+content changed" (same six option letters as resolved at `HUMAN_SPEC_APPROVAL`);
+the code always used the resolved values, and `stage-map.yaml` gives
+`IMPLEMENTATION` no loop-back to `SPECIFICATION`. Proceeding is correct; the
+mandated `RECONCILIATION` re-run should note the version references rather than
+re-open them.
 
-| AC | Implementation (file · symbol) | Verifying test(s) | Status |
-|---|---|---|---|
-| AC-001 Successful registration → `201` + `Location` + `CUSTOMER` body | `controller/CustomerController.register` → `service/CustomerService.register` → `repository/CustomerRepository.save`; entity `model/entity/Customer`; `schema.sql` | `CustomerRegistrationApiTest.validRegistrationReturns201WithLocationAndCustomerBody`, `.emailIsStoredAndReturnedNormalisedToLowercase`, `.password72CharsMeetingPolicyIsAccepted`; `RegistrationSecurityPostureTest.registrationEndpointIsReachableWithoutAuthentication`; `CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash` | PASS |
-| AC-002 Duplicate email, case-insensitive → `409`, no 2nd account | `CustomerService.register` (email `trim`+`toLowerCase` → `existsByEmail` → `DuplicateEmailException`); `GlobalExceptionHandler.handleDuplicateEmail`; `uq_customer_email` | `CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409`; `CustomerSchemaTest.emailHasAUniqueConstraint`, `.caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint`; `CustomerServiceTest.duplicateEmailSameCaseThrowsAndDoesNotSave`, `.duplicateEmailDifferentCaseThrowsAndDoesNotSave` | PASS |
-| AC-003 Email validation → `400` + `fieldErrors[email]` | `model/request/RegistrationRequest` (`@NotBlank @Email @Size(max=254)`); `GlobalExceptionHandler.handleValidation` | `CustomerRegistrationApiTest.malformedEmailReturns400WithEmailFieldError`, `.blankEmailReturns400WithEmailFieldError`, `.emailLongerThan254CharsReturns400WithEmailFieldError`; `CustomerSchemaTest.emailColumnIsVarchar254NotNull` | PASS |
-| AC-004 Password stored as BCrypt hash, never plaintext | `CustomerService.register` (`passwordEncoder.encode`); `Customer.passwordHash` `@Column(length=60)`; `security/SecurityConfig.passwordEncoder` (`BCryptPasswordEncoder`) | `CustomerSchemaTest.passwordHashColumnIsVarchar60NotNull`, `.noPlaintextPasswordColumnExists`; `CustomerServiceTest.happyPathCreatesAnEnabledCustomerWithABcryptHash` (hash matches `^\$2[aby]\$\d\d\$.{53}$`, verifies, `!= raw`) | PASS |
-| AC-005 Response excludes credential + internal state | `model/dto/CustomerResponse` (`id,email,role,createdAt` only); `CustomerService.toResponse` | `CustomerRegistrationApiTest.successResponseNeverExposesCredentialOrInternalState` | PASS |
-| AC-006 Password policy (incl. 72-**byte** bound) → `400` + `fieldErrors[password]` | `validation/ValidPassword` + `validation/PasswordPolicyValidator` (UTF-8 byte length + 4 char classes, static message); service re-check via `PasswordPolicyValidator.isCompliant` | `CustomerRegistrationApiTest` 7 password scenarios incl. `passwordOver72BytesButUnder72CharsReturns400WithPasswordFieldError`; `PasswordPolicyValidatorTest` (17 tests: 11/12/72/73-byte, multi-byte, each class, no-echo); `CustomerServiceTest.serviceRechecksThePasswordPolicyBeforeHashing...` | PASS |
-| AC-007 Non-JSON / missing `Content-Type` → `415` | `CustomerController` `@PostMapping(consumes=APPLICATION_JSON_VALUE)`; `GlobalExceptionHandler.handleMediaType` | `CustomerRegistrationApiTest.nonJsonContentTypeReturns415`, `.missingContentTypeReturns415` | PASS |
-| Derived: unknown / malformed JSON → `400` | `spring.jackson.deserialization.fail-on-unknown-properties=true` (PD-1); `GlobalExceptionHandler.handleUnreadable` (single `HttpMessageNotReadableException` branch) | `CustomerRegistrationApiTest.unknownJsonPropertyReturns400`, `.malformedJsonReturns400`, `.errorBodyHasTheApiConventionShape`, `.errorBodyNeverLeaksInternals` | PASS |
-| NFR-4 / BR-007: explicit mapping, UTC audit, `created_at` not updatable | `Customer` explicit `@Column`s; `config/JpaAuditingConfig` (UTC `DateTimeProvider`); `schema.sql` | `CustomerSchemaTest.auditTimestampColumnsAreTimeZoneAwareAndNotNull`, `.idColumnIsBigintNotNull`, `.roleColumnIsNotNull`, `.enabledColumnIsBooleanNotNull`; `CustomerPersistenceTest.auditingPopulatesBothTimestampsInUtc`, `.createdAtIsNotChangedByALaterUpdate`, `.roleIsPersistedAsTheEnumName` | PASS |
-| SEC-1/SEC-7/SC-4/SC-5: public + CSRF-exempt only for the registration path; deny-by-default elsewhere; H2 console off | `security/SecurityConfig` (scoped `RequestMatcher` for both `permitAll` and `csrf.ignoringRequestMatchers`; `anyRequest().authenticated()`; `HttpStatusEntryPoint(401)`) | `RegistrationSecurityPostureTest` (4 tests: reachable unauthenticated, tokenless POST accepted, other route `401`, `/h2-console` not `200`) | PASS |
+## 3. Implemented Acceptance Criteria (delta only)
+
+Full AC coverage is unchanged from v1 §3. This pass affects:
+
+| AC | v1 status | Change in v2 | v2 status | Verifying test(s) |
+|---|---|---|---|---|
+| AC-002 Duplicate email, case-insensitive → `409` | RECONCILED (single-request) / PARTIALLY_RECONCILED (concurrent) | Concurrent `uq_customer_email` race now also → `409` via `CustomerService.register` catch → `DuplicateEmailException` → `GlobalExceptionHandler.handleDuplicateEmail` | RECONCILED (both paths) | `CustomerServiceTest.concurrentDuplicateEmailUniqueViolationIsMappedToDuplicateEmailException`, `.anUnrelatedIntegrityViolationIsNotReportedAsADuplicateEmail`; existing `.duplicateEmailSameCaseThrowsAndDoesNotSave`, `.duplicateEmailDifferentCaseThrowsAndDoesNotSave`, `CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409` |
+| AC-004 Password stored as BCrypt hash, never plaintext | PARTIALLY_RECONCILED (RC-1 latent `toString()` leak) | `RegistrationRequest.toString()` masks `password` | RECONCILED | `RegistrationRequestTest.toStringNeverRendersTheSubmittedPlaintextPassword`, `.toStringOfANullPasswordStillDoesNotLeakAndDoesNotThrow`, `.passwordAccessorStillReturnsTheRealValue` |
+| SEC-1 / SC-4 posture | PARTIALLY_RECONCILED (RC-9 wording) | `SecurityConfig` javadoc/comment aligned to "authentication-required by default (SC-4)"; mechanism (`anyRequest().authenticated()`) unchanged | RECONCILED (code); doc note pending for spec/api-design owners | `RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated` (unchanged, still green) |
 
 ## 4. Change Set
 
-Base path `src/main/java/org/example/customerportal/`. All classifications
-against `docs/plans/US-001-implementation-plan.md` and
-`docs/impact-analysis/US-001-impact-analysis.md`.
+Base path `src/main/java/org/example/customerportal/`. Classified against
+`docs/reviews/reconciliation/US-001-reconciliation.md` v2 §17 (RC-1, RC-3, RC-9,
+RC-10).
 
-### Created — production (Planned)
+### Modified — production (Planned corrective)
 
-| File | Plan ref | Notes |
+| File | Change | Finding |
 |---|---|---|
-| `model/entity/Role.java` | C-1 | `enum Role { CUSTOMER, ADMIN }` |
-| `model/entity/Customer.java` | C-2 | `@Entity`, explicit `@Column`s, `@EntityListeners(AuditingEntityListener.class)`, table-level `uq_customer_email`, `equals`/`hashCode` on `id`, `toString()` excludes `passwordHash` |
-| `repository/CustomerRepository.java` | C-3 | `JpaRepository<Customer,Long>` + `existsByEmail`, `findByEmail` |
-| `validation/ValidPassword.java` | C-4 | constraint annotation, static generic message |
-| `validation/PasswordPolicyValidator.java` | C-5 | UTF-8 **byte** length 12..72 + 4 char classes; `public static boolean isCompliant(String)` reused by the service |
-| `model/request/RegistrationRequest.java` | C-6 | `record`, `@NotBlank @Email @Size(max=254)` / `@NotBlank @ValidPassword`; no `@JsonIgnoreProperties` (PD-1) |
-| `model/dto/CustomerResponse.java` | C-7 | `record(Long id, String email, String role, OffsetDateTime createdAt)` |
-| `model/dto/ApiFieldError.java` | C-8 | `record(String field, String message)` → contract `FieldError` (PD-5) |
-| `model/dto/ErrorResponse.java` | C-9 | `record`, `@JsonInclude(NON_EMPTY)`, `of(...)` helper for the no-field case |
-| `exception/DuplicateEmailException.java` | C-10 | `RuntimeException`, no HTTP concept, no submitted value |
-| `exception/GlobalExceptionHandler.java` | C-11 | single `@RestControllerAdvice`; maps validation→400+`fieldErrors`, `HttpMessageNotReadableException`→400, media-type→415, duplicate→409, invalid-password→400, fallback→500; `path` from `getRequestURI()`, UTC `timestamp` |
-| `service/CustomerService.java` | C-12 | constructor injection, `@Transactional register(...)`, email normalize, byte re-check, duplicate guard, BCrypt encode, private mapping (PD-3) |
-| `controller/CustomerController.java` | C-13 | `@RestController @RequestMapping("/api/v1/customers")`, `@PostMapping(consumes/produces JSON)`, `201` + `Location` via `ServletUriComponentsBuilder`, no error handling |
-| `security/SecurityConfig.java` | C-14 | `SecurityFilterChain` + `PasswordEncoder` bean (PD-4); scoped public matcher + scoped CSRF exemption; `formLogin`/`httpBasic`/`logout` disabled; `HttpStatusEntryPoint(401)` (plan F-3 recommendation) |
-| `config/JpaAuditingConfig.java` | C-15 | `@EnableJpaAuditing(dateTimeProviderRef=...)`, UTC `DateTimeProvider`; not on the main class (AD-7) |
-| `src/main/resources/schema.sql` | C-16 | DB design §8.1 DDL; `GENERATED BY DEFAULT AS IDENTITY` (no explicit `NOT NULL` on `id` — H2 2.x accepts and `validate` passes) |
+| `model/request/RegistrationRequest.java` | Added `@Override toString()` returning `"RegistrationRequest{email='" + email + "', password=***}"`; javadoc note | RC-1 |
+| `service/CustomerService.java` | `register(...)` wraps `customerRepository.save` in `try/catch (DataIntegrityViolationException)`; new private `isEmailUniquenessViolation(...)` (Hibernate `ConstraintViolationException#getConstraintName()` + message-chain fallback, both matched case-insensitively against `uq_customer_email`); maps a match to `DuplicateEmailException`, rethrows anything else; import + javadoc | RC-3 |
+| `security/SecurityConfig.java` | Class javadoc bullet and one inline comment reworded from "deny-by-default" to "authentication-required by default (SC-4)"; no behavioural change | RC-9 |
 
-### Created — production (Required Supporting Change)
+### Modified — test (Planned corrective)
 
-| File | Justification |
-|---|---|
-| `exception/InvalidPasswordException.java` | FR-6 / SC-1 require a service-layer password re-check "before hashing"; plan C-12 says "throw on failure" without naming the type. A dedicated domain exception in the `exception` package (AD-6) mapped to `400` is the minimal, convention-compliant choice. Not reachable from the HTTP flow (request `@Valid` catches policy failures first); exercised directly by `CustomerServiceTest`. |
+| File | Change | Finding |
+|---|---|---|
+| `service/CustomerServiceTest.java` | +2 tests (constraint-scoped `uq_customer_email` → `DuplicateEmailException`; unrelated integrity violation propagates unchanged, asserted `isSameAs`); import `DataIntegrityViolationException` | RC-3 |
+| `security/RegistrationSecurityPostureTest.java` | Reworded the `protectedRouteReturns401WhenUnauthenticated` doc comment ("deny-by-default" → "authentication-required by default"); no assertion change | RC-9 |
 
-### Created — test (Planned; skeletons C-T1/C-T2/C-T3, "indicative" per plan Open Question 4)
+### Created — test (Planned corrective)
 
-| File | Plan ref | Level | Tests |
+| File | Level | Tests | Finding |
 |---|---|---|---|
-| `validation/PasswordPolicyValidatorTest.java` | C-T1 | unit | 17 — byte boundary (11/12/72/73), multi-byte, each char class, `isValid` null/empty delegation, no-value-echo message |
-| `service/CustomerServiceTest.java` | C-T3 | service (Mockito) | 5 — happy path (role/enabled/BCrypt verify/`!= raw`), email normalize before check+save, duplicate same/different case (no `save`), policy re-check before repo access |
-| `persistence/CustomerPersistenceTest.java` | C-T2 | persistence (`@SpringBootTest`) | 3 — UTC auditing on both timestamps, `created_at` unchanged by a later update, `role` persisted as `EnumType.STRING` name |
+| `model/request/RegistrationRequestTest.java` | unit | 3 — `toString()` masks the plaintext password / keeps email; null-password `toString()` does not throw or leak; `password()` accessor still returns the real value | RC-1 |
 
-### Modified
+### Deleted
 
-| File | Change | Plan ref | Classification |
-|---|---|---|---|
-| `build.gradle.kts` | + `implementation("org.springframework.boot:spring-boot-starter-validation")` (BOM-managed, no version) | M-1 | Planned (confirmed at HUMAN_PLAN_APPROVAL) |
-| `src/main/resources/application.yaml` | + H2 file datasource, `ddl-auto=validate`, `open-in-view=false`, snake_case `physical_naming_strategy`, `sql.init.mode=always`, `h2.console.enabled=false`, `jackson…fail-on-unknown-properties=true` | M-2 | Planned |
-| `.gitignore` | + `/data/` | M-3 | Planned |
-| `src/test/java/.../CustomerPortalApplicationTests.java` | + `@ActiveProfiles("test")` | M-4 | Planned |
-| `src/test/java/.../persistence/CustomerSchemaTest.java` | dummy BCrypt literal `…012345` (61 chars) → `…01234` (60 chars) in `caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint` (2 occurrences) | — | **Unexpected (test-fixture defect fix)** — see §7 |
+| Path | Reason | Finding |
+|---|---|---|
+| `src/main/java/org/example/customerportal/docs/` (subtree: `hooks/tool-usage.jsonl`) | Stray, untracked hook telemetry misplaced under the Java source root; not covered by the `/docs/hooks/tool-usage.jsonl` ignore rule; must not enter the PR or sit in `src/` | RC-10 |
 
 ### Unrelated changes
 
-None included. Five pre-existing untracked `docs/**/harness-*` files are left
-untouched and are **not** part of this Story's change set.
+None. No change to `build.gradle.kts`, `application.yaml`,
+`application-test.yaml`, `schema.sql`, `.gitignore`, or any entity/repository.
 
 ## 5. Validation Evidence
 
-| Check | Command / tool | Result |
-|---|---|---|
-| Baseline (red phase, pre-implementation) | `./gradlew test` | BUILD FAILED — 37 tests, 33 failed (matches `US-001-test-generation-report.md`) |
-| Full build | `./gradlew clean build` | **BUILD SUCCESSFUL** |
-| Full test run | `./gradlew clean test` | **62 tests, 0 failures, 0 errors** |
-| Web / contract | `registration.CustomerRegistrationApiTest` | 22/22 PASS |
-| Persistence — schema | `persistence.CustomerSchemaTest` | 10/10 PASS |
-| Persistence — entity slice | `persistence.CustomerPersistenceTest` | 3/3 PASS |
-| Security posture | `security.RegistrationSecurityPostureTest` | 4/4 PASS |
-| Service unit | `service.CustomerServiceTest` | 5/5 PASS |
-| Validation unit | `validation.PasswordPolicyValidatorTest` | 17/17 PASS |
-| Regression | `CustomerPortalApplicationTests.contextLoads` | 1/1 PASS (Security + JPA active, `test` profile) |
-| `ddl-auto=validate` — test profile | test-suite context boot | clean (no Hibernate schema-validation error) |
-| `ddl-auto=validate` — default profile (file H2) | `./gradlew bootRun` (90 s, then stopped) | `Started CustomerPortalApplication` — clean; no `HHH` schema-validation error (**R-1 closed**) |
-| Compilation diagnostics | `./gradlew compileJava` / `build` | no warnings, no errors |
+Environment: Gradle 9.7.1 (wrapper), toolchain Java 21, Spring Boot 4.1.1,
+Hibernate ORM 7.4.5, H2 2.x. Commands run from the repo root.
 
-Build environment: Gradle 9.7.1 (wrapper), Gradle toolchain Java 21, Spring Boot
-4.1.1, Hibernate ORM 7.4.5, H2 2.x. IDEA MCP semantic/diagnostic tooling was not
-invoked by this Skill; layer-dependency and semantic checks are
-`IMPLEMENTATION_VERIFICATION`'s (plan "Validation Strategy"). Layering was
-verified by inspection: `controller` → `service` only; `service` →
-`repository`/`model`/`exception`/`validation`; `repository` → `model.entity`;
-no entity in any controller signature; no error body built in the controller.
+| Check | Command | Result |
+|---|---|---|
+| Compile (main + test) | `./gradlew --offline compileJava compileTestJava` | SUCCESS, no warnings |
+| Full test run | `./gradlew --offline clean test` | **67 tests, 0 failures, 0 errors, 0 skipped** |
+| Full build (`check` + assemble) | `./gradlew --offline clean build` | **BUILD SUCCESSFUL** |
+| `service.CustomerServiceTest` | (in run) | 7/7 PASS (was 5; +2 RC-3) |
+| `model.request.RegistrationRequestTest` | (in run) | 3/3 PASS (new, RC-1) |
+| `security.RegistrationSecurityPostureTest` | (in run) | 4/4 PASS (unchanged behaviour, RC-9) |
+| `registration.CustomerRegistrationApiTest` | (in run) | 22/22 PASS (regression) |
+| `persistence.CustomerSchemaTest` / `CustomerPersistenceTest` | (in run) | 10/10 + 3/3 PASS (regression) |
+| `validation.PasswordPolicyValidatorTest` | (in run) | 17/17 PASS (regression) |
+| `CustomerPortalApplicationTests.contextLoads` | (in run) | 1/1 PASS |
+| `ddl-auto=validate` (test profile) | test-suite context boot | clean — no schema-validation error |
+| Working-tree hygiene | `git status --short` | 4 modified source files + 1 new test dir; no `data/`, no stray files |
+
+IDEA MCP semantic/diagnostic tooling was not invoked by this Skill; layering was
+re-checked by inspection (the RC-3 change keeps `service` → `exception` only;
+`org.hibernate.exception.ConstraintViolationException` is a compile-time
+reference to a transitive `spring-boot-starter-data-jpa` dependency, no new
+declared dependency). Independent semantic/dependency checks remain
+`IMPLEMENTATION_VERIFICATION`'s.
 
 ## 6. Configuration Changes
 
-| File | Change | Approving plan step |
-|---|---|---|
-| `src/main/resources/application.yaml` | H2 file datasource `jdbc:h2:file:./data/customer-portal;AUTO_SERVER=TRUE`; `spring.jpa.hibernate.ddl-auto=validate`; `spring.jpa.open-in-view=false`; `spring.jpa.properties.hibernate.physical_naming_strategy=…CamelCaseToUnderscoresNamingStrategy`; `spring.sql.init.mode=always`; `spring.h2.console.enabled=false`; `spring.jackson.deserialization.fail-on-unknown-properties=true` | M-2 (PD-1); `open-in-view=false` also per impact-analysis §11 / test-strategy §6 |
-| `src/test/resources/application-test.yaml` | **not modified** — created by `test-writer` (plan C-17); already correct (isolated in-memory H2, `validate`, `sql.init.mode=embedded`, console off, fail-on-unknown-properties, `open-in-view=false`) | — |
-| `.gitignore` | `+ /data/` | M-3 |
-
-No secrets, no environment variables, no new ports, no JVM options. Generated
-`./data/` H2 files are git-ignored and were removed after the boot check.
+None.
 
 ## 7. Deviations and Discovered Problems
 
-### D-1 — New class `InvalidPasswordException` (Required Supporting Change)
+### D-1 — RC-9 documentation note is out of this Skill's authority (finding for spec-writer / openapi-designer)
 
-FR-6 mandates a service-layer password re-check before hashing; the plan (C-12)
-prescribes the behavior ("throw on failure") but not the exception type. Added
-`exception/InvalidPasswordException` (domain exception, no HTTP concept, no
-submitted value) mapped to `400` by the advice. Minimal, within AD-6, traceable
-to FR-6/SC-1. No requirement or design change. **No loop-back warranted.**
+The reconciliation's preferred RC-9 fix pairs the code-comment alignment with a
+one-line note in `docs/specifications/US-001-spec.md` §7 (SEC-1 row) and
+`docs/designs/api/US-001-api-design.md` §6 / §8, both of which currently say
+"deny-by-default". Those artifacts are owned by `spec-writer` and
+`openapi-designer` (`artifact-paths.yaml`); this Skill did not edit them. The
+required note: *"'deny by default' here means authentication-required by default
+per SC-4 — `anyRequest().authenticated()`, not a literal `denyAll()`."*
+No behavioural change; the code side (SecurityConfig + tests) is complete and
+consistent with SC-4 as written in `security-conventions.md`.
 
-### D-2 — `CustomerPersistenceTest` uses `@SpringBootTest`, not `@DataJpaTest`
+### D-2 — RC-10 hook output-path fix is hook configuration (finding for the human)
 
-Plan skeleton C-T2 suggests `@DataJpaTest`; plan Open Question 4 states the
-skeletons are "indicative" and the AC-test-matrix scenario/expected columns are
-the binding contract. `@SpringBootTest @ActiveProfiles("test")` was used so the
-datasource, SQL-init, and auditing config are exactly the running
-application's, avoiding `@DataJpaTest` datasource-replacement / auditing-import
-ambiguity. All three deferred C-T2 scenarios (UTC auditing, `created_at`
-immutability, `EnumType.STRING` round-trip) are covered and pass. **No
-behavioral gap.**
+The stray file was deleted. Its root cause — a hook writing tool-usage telemetry
+to a path that resolved under `src/main/java/...` instead of the repo-level
+`docs/hooks/` — is hook configuration, outside this Skill's authority and the
+implementation scope. The human should correct the hook's output path (and/or
+broaden the `.gitignore` rule) so the telemetry lands under `docs/hooks/`.
 
-### D-3 — Corrected a malformed dummy BCrypt literal in `CustomerSchemaTest` (Unexpected)
+### D-3 — RC-3 mapping placed in the service, not `GlobalExceptionHandler`
 
-`persistence.CustomerSchemaTest.caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint`
-(committed by `test-writer` at TEST_WRITING) inserted a **61-character** dummy
-hash into `password_hash`, which is `VARCHAR(60)` per PC-9 / DB design §4.2 /
-Q-2 — and which the same file's own `passwordHashColumnIsVarchar60NotNull`
-asserts. The first `INSERT` therefore failed with `Value too long for column`
-before the intended unique-constraint assertion could run. The literal was
-shortened by one character (`…wxyz012345` → `…wxyz01234`, 60 chars) in both
-occurrences. **No assertion, scenario, or expected outcome was changed**; the
-test still asserts the second insert violates `uq_customer_email`. This is a
-test-fixture defect, not a schema problem — real `BCryptPasswordEncoder` output
-is exactly 60 characters and fits (proven by `CustomerRegistrationApiTest` and
-`CustomerServiceTest`). Flagged for `IMPLEMENTATION_VERIFICATION` /
-`RECONCILIATION` visibility; `test-writer` owns the suite and may prefer to
-re-issue the fixture.
+The reconciliation allowed either. The service-layer catch was chosen: it reuses
+the existing `DuplicateEmailException` → `409` mapping in
+`GlobalExceptionHandler` (no HTTP concern added to the service — the domain
+exception carries none), and it is deterministically unit-testable with a mocked
+repository. `save()` executes the INSERT synchronously under
+`GenerationType.IDENTITY`, so the violation surfaces inside the `try` rather than
+at transaction commit.
 
-The touched test's own purpose (a duplicate row violates `uq_customer_email`)
-remains covered by it after the fix; **case-insensitive** duplicate rejection —
-which this test does not actually exercise (it inserts a byte-identical string
-twice) — has independent real coverage in
-`CustomerRegistrationApiTest.duplicateEmailIsRejectedCaseInsensitivelyWith409`
-(registers an address, then its `toUpperCase` form → `409` only because
-`CustomerService` lowercases before `existsByEmail`) and
-`CustomerServiceTest.duplicateEmailDifferentCaseThrowsAndDoesNotSave` /
-`.emailIsNormalisedToLowercaseAndTrimmedBeforeCheckAndSave`.
+### D-4 — RC-3 constraint scoping is name + message based
 
-### D-4 — Unknown-field vs malformed-JSON share one `message` (plan F-4, expected)
+`isEmailUniquenessViolation` first inspects
+`org.hibernate.exception.ConstraintViolationException#getConstraintName()`, then
+falls back to a case-insensitive `contains("uq_customer_email")` scan of the
+cause-chain messages (H2 names the backing unique index after the constraint).
+The fallback matches the **constraint token**, not any email-shaped text, so a
+non-email integrity violation whose message quotes the row's email value does
+not false-positive. The two new `CustomerServiceTest` cases exercise the
+message-fallback path (positive and negative) without coupling the test to a
+Hibernate exception constructor signature; the negative case was confirmed
+load-bearing (it fails if the constraint-token check is removed).
 
-Per PD-1, both surface as `HttpMessageNotReadableException` and get one advice
-branch → one generic `400` message ("The request body is missing, malformed, or
-contains an unknown field."). The OpenAPI `400` examples show two distinct
-illustrative messages; the AC-6 body **shape** is preserved and tests assert
-status + shape only, not message text. Consistent with plan-review F-4 ("none
-required").
+### RC-2, RC-5, RC-6, RC-7, RC-8 — not addressed here (by design)
 
-### D-5 — `schema.sql` identity column
-
-`id BIGINT GENERATED BY DEFAULT AS IDENTITY` is written without an explicit
-`NOT NULL` (H2 2.x makes identity columns implicitly `NOT NULL`; adding the
-clause before the identity clause is rejected on this H2 version — DB design
-§8.1 note). `ddl-auto=validate` passes on both profiles and
-`CustomerSchemaTest.idColumnIsBigintNotNull` confirms `BIGINT` + not-nullable.
+Per reconciliation v2 these are Minor/Informational with **no required
+correction** or are already-committed harness-maintenance items; none is in this
+loop-back's scope.
 
 ## 8. Open Decisions
 
-None touched; none newly required. OD-001..OD-006 were consumed as resolved at
-`HUMAN_SPEC_APPROVAL` (OD-001:A, OD-002:B, OD-003:A, OD-004:A, OD-005:A,
-OD-006:A). `docs/decisions/US-001-open-decisions.md` v1 still shows them `OPEN` —
-documentation lag owned by `us-clarifier` (carried finding F-1); non-blocking,
-no impact on this implementation.
-
-No security-sensitive decision is missing. Credential handling is fully
-specified and implemented (BCrypt, dual-layer policy, no plaintext persisted /
-logged / returned, scoped CSRF exemption, deny-by-default). Residual
-verification items (R-2 CSRF scope depth, R-3 byte boundary, R-7 message
-hygiene) are owned by `SECURITY_REVIEW` and `IMPLEMENTATION_VERIFICATION` per
-the plan.
+None touched; none newly required. `open_decisions` v2 (OD-001:A OD-002:B
+OD-003:A OD-004:A OD-005:A OD-006:A, all `RESOLVED`) was consumed as-is. No
+security-sensitive decision is missing: the RC-1 masking closes the last latent
+credential-exposure path, and RC-3 makes the concurrent duplicate path behave
+identically to the pre-checked one.
 
 ## 9. Result
 
@@ -291,16 +257,11 @@ result:
   loop_back_stage: null
   blocking_issues: []
   non_blocking_findings:
-    - "D-1: added exception/InvalidPasswordException for the FR-6 service-layer password re-check (plan C-12 left the type unspecified); domain exception, mapped to 400, not reachable from the HTTP flow. No requirement/design change."
-    - "D-2: CustomerPersistenceTest (C-T2) uses @SpringBootTest instead of the indicative @DataJpaTest skeleton; all three deferred scenarios covered and passing."
-    - "D-3: corrected a malformed 61-char dummy BCrypt literal to 60 chars in the committed CustomerSchemaTest.caseInsensitiveDuplicateEmailCollidesOnTheUniqueConstraint fixture (VARCHAR(60) per PC-9); no assertion changed. test-writer owns the suite."
-    - "D-4 / plan F-4: malformed JSON and unknown-field share one HttpMessageNotReadableException advice branch and one generic 400 message (PD-1); OpenAPI's two example messages are illustrative, AC-6 shape preserved."
-    - "D-5: schema.sql id column uses 'GENERATED BY DEFAULT AS IDENTITY' with no explicit NOT NULL (H2 2.x implicit); ddl-auto=validate passes on both profiles."
-    - "R-1 closed: ddl-auto=validate boots clean on the test (in-memory) and default (file H2) profiles; OffsetDateTime <-> TIMESTAMP WITH TIME ZONE validates on H2 2.x / Hibernate 7.4.5."
-    - "R-2 (SECURITY_REVIEW): SecurityConfig scopes both the public matcher and the CSRF exemption to POST /api/v1/customers via one RequestMatcher; anyRequest().authenticated(); HttpStatusEntryPoint(401). 'CSRF still enforced elsewhere' remains unassertable in US-001 (no second writable endpoint)."
-    - "R-3 closed at implementation level: password 12..72 bound measured in UTF-8 bytes in both PasswordPolicyValidator and the service re-check; PasswordPolicyValidatorTest covers 11/12/72/73-byte and multi-byte vectors."
-    - "R-6 closed: JpaAuditingConfig DateTimeProvider returns OffsetDateTime.now(ZoneOffset.UTC); CustomerPersistenceTest asserts the UTC offset on both timestamps."
-    - "R-7 (SECURITY_REVIEW): password constraint message is a fixed generic string ('Password does not meet the security policy.'); PasswordPolicyValidatorTest and CustomerRegistrationApiTest.passwordValidationMessageDoesNotEchoTheSubmittedValue assert no value echo."
-    - "F-1 (carried): docs/decisions/US-001-open-decisions.md v1 still shows OD-001..OD-006 as OPEN; authoritative resolutions are in history.jsonl at HUMAN_SPEC_APPROVAL. Owned by us-clarifier; non-blocking."
-    - "spring-boot-starter-validation (M-1) added to build.gradle.kts; BOM-version-managed, first-party; confirmed at HUMAN_PLAN_APPROVAL."
+    - "RC-1 DONE: RegistrationRequest.toString() now masks password (password=***), consistent with Customer.toString(); RegistrationRequestTest (3 tests) proves the submitted plaintext is never rendered and the password() accessor is unchanged."
+    - "RC-3 DONE: CustomerService.register maps a uq_customer_email DataIntegrityViolationException (constraint-scoped via Hibernate constraint name + message-chain fallback) to DuplicateEmailException -> existing 409; any other integrity violation is rethrown unchanged. CustomerServiceTest +2 deterministic cases (positive + isSameAs negative)."
+    - "RC-9 DONE (code half): SecurityConfig javadoc + inline comment reworded from 'deny-by-default' to 'authentication-required by default (SC-4)'; anyRequest().authenticated() unchanged; RegistrationSecurityPostureTest unchanged (still green), one doc comment reworded. Documentation-direction finding D-1: spec §7 / api-design §6/§8 still say 'deny-by-default' and need the one-line clarifying note from their owners (spec-writer / openapi-designer)."
+    - "RC-10 DONE (removal): deleted src/main/java/org/example/customerportal/docs/ (stray hooks/tool-usage.jsonl). Finding D-2 for the human: fix the hook's output path so telemetry lands under docs/hooks/ (hook config, out of implementation scope)."
+    - "Staleness waiver: specification v1 / implementation_plan v1 / ac_test_matrix v1 reference open_decisions v1; open_decisions v2 changed no decision content. Proceed; RECONCILIATION re-run should note, not re-open."
+    - "Validation: ./gradlew clean build BUILD SUCCESSFUL; 67 tests (was 62; +5), 0 failures/errors/skipped, 8 suites. No dependency, schema, or config change. OD-005:A scope respected."
+    - "Human-mandated post-correction sequence still pending: rerun done here; IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, RECONCILIATION must re-run against these changes and open_decisions v2 (implementation_verification v1 + security_review v1 consumed open_decisions v1 and predate RC-1/RC-3/RC-9/RC-10)."
 ```

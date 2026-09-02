@@ -8,6 +8,7 @@ import org.example.customerportal.model.entity.Role;
 import org.example.customerportal.model.request.RegistrationRequest;
 import org.example.customerportal.repository.CustomerRepository;
 import org.example.customerportal.validation.PasswordPolicyValidator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,14 @@ import java.util.Locale;
  * (OD-003:A), BCrypt-hashes the password (SC-1), and persists an enabled
  * {@code CUSTOMER} account with UTC audit timestamps. Entity ↔ DTO mapping is
  * done here (PD-3).
+ *
+ * <p>The duplicate-email guard is check-then-act; two concurrent requests for
+ * the same new email can both pass {@code existsByEmail} and race to
+ * {@code save}. The loser's insert trips {@code uq_customer_email} as a
+ * {@link DataIntegrityViolationException}; that single constraint is mapped to
+ * the same {@link DuplicateEmailException} / {@code 409} as the pre-check path
+ * (OD-003:A / AC-002). Any other integrity violation propagates unchanged so it
+ * is not misreported as a duplicate email.
  */
 @Service
 public class CustomerService {
@@ -54,11 +63,44 @@ public class CustomerService {
         customer.setRole(Role.CUSTOMER);
         customer.setEnabled(true);
 
-        return toResponse(customerRepository.save(customer));
+        try {
+            // IDENTITY id generation forces the INSERT to run here, so a
+            // uq_customer_email race surfaces inside this try (not at commit).
+            return toResponse(customerRepository.save(customer));
+        } catch (DataIntegrityViolationException ex) {
+            if (isEmailUniquenessViolation(ex)) {
+                throw new DuplicateEmailException();
+            }
+            throw ex;
+        }
     }
 
     private static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * True only when {@code ex} was caused by the {@code uq_customer_email}
+     * constraint — checked via the Hibernate constraint name and, as a fallback,
+     * the message chain (H2 names the backing index after the constraint). A
+     * violation of any other constraint returns {@code false} so it is not
+     * mapped to a duplicate-email {@code 409}.
+     */
+    private static boolean isEmailUniquenessViolation(DataIntegrityViolationException ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException hce) {
+                String constraintName = hce.getConstraintName();
+                if (constraintName != null
+                        && constraintName.toLowerCase(Locale.ROOT).contains("uq_customer_email")) {
+                    return true;
+                }
+            }
+            String message = cause.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("uq_customer_email")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static CustomerResponse toResponse(Customer customer) {

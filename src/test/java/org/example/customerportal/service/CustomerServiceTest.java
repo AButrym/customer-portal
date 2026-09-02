@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -117,5 +118,34 @@ class CustomerServiceTest {
 
         verify(customerRepository, never()).existsByEmail(anyString());
         verify(customerRepository, never()).save(any());
+    }
+
+    // ---------------------------------------------------------------- RC-3 / REJECT-4
+    // Concurrent duplicate: existsByEmail passes, then save() trips uq_customer_email.
+
+    @Test
+    void concurrentDuplicateEmailUniqueViolationIsMappedToDuplicateEmailException() {
+        when(customerRepository.existsByEmail("race@example.com")).thenReturn(false);
+        when(customerRepository.save(any(Customer.class))).thenThrow(new DataIntegrityViolationException(
+                "could not execute statement",
+                new java.sql.SQLIntegrityConstraintViolationException(
+                        "Unique index or primary key violation: \"PUBLIC.UQ_CUSTOMER_EMAIL_INDEX_5 ON PUBLIC.CUSTOMER(EMAIL)\"")));
+
+        assertThatExceptionOfType(DuplicateEmailException.class).isThrownBy(() ->
+                service().register(new RegistrationRequest("race@example.com", RAW_PASSWORD)));
+    }
+
+    @Test
+    void anUnrelatedIntegrityViolationIsNotReportedAsADuplicateEmail() {
+        when(customerRepository.existsByEmail("other@example.com")).thenReturn(false);
+        DataIntegrityViolationException unrelated = new DataIntegrityViolationException(
+                "could not execute statement",
+                new java.sql.SQLIntegrityConstraintViolationException(
+                        "Check constraint violation: \"PUBLIC.CK_CUSTOMER_ROLE\""));
+        when(customerRepository.save(any(Customer.class))).thenThrow(unrelated);
+
+        assertThatExceptionOfType(DataIntegrityViolationException.class)
+                .isThrownBy(() -> service().register(new RegistrationRequest("other@example.com", RAW_PASSWORD)))
+                .isSameAs(unrelated);
     }
 }

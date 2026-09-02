@@ -17,7 +17,11 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  *
  * <ul>
  *   <li>{@code POST /api/v1/customers} is the single public route; every other
- *       request requires authentication (deny-by-default, SC-4).</li>
+ *       request is <em>authentication-required by default</em> — SC-4's
+ *       "deny by default" means "every endpoint requires authentication unless
+ *       the approved API design lists it as public", which is exactly what
+ *       {@code anyRequest().authenticated()} enforces (it is not a literal
+ *       {@code denyAll()}).</li>
  *   <li>CSRF stays enabled globally and is exempted <em>only</em> for
  *       {@code POST /api/v1/customers} (OD-002:B — the recorded SC-5 architecture
  *       decision).</li>
@@ -38,6 +42,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(REGISTRATION_ENDPOINT).permitAll()
+                        // SC-4: authentication-required by default (not a literal denyAll()).
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(REGISTRATION_ENDPOINT))
                 .httpBasic(AbstractHttpConfigurer::disable)
