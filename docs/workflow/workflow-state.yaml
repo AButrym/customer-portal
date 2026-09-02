@@ -4,23 +4,33 @@
 version: 1
 story: US-001
 workflow: story-delivery
-current_stage: IMPLEMENTATION_VERIFICATION
-previous_stage: IMPLEMENTATION
-last_completed_stage: IMPLEMENTATION
+current_stage: SECURITY_REVIEW
+previous_stage: IMPLEMENTATION_VERIFICATION
+last_completed_stage: IMPLEMENTATION_VERIFICATION
 status: IN_PROGRESS
-attempt: 1
-last_invoked_skill: springboot-implementor
+attempt: 2
+last_invoked_skill: implementation-verifier
 last_result:
   verdict: PASS
-  stage: IMPLEMENTATION
-  recorded_at: 2026-09-02T14:52:00Z
+  stage: IMPLEMENTATION_VERIFICATION
+  recorded_at: 2026-09-02T15:04:46Z
 last_artifacts:
-  - type: implementation_report
-    path: docs/evidence/US-001-implementation-report.md
+  - type: implementation_verification
+    path: docs/verification/US-001-implementation-verification.md
     version: 2
 pending_human_gate: null
 blocking_issues: []
 non_blocking_findings:
+  - "IMPLEMENTATION_VERIFICATION attempt 2 (mandated re-run per HUMAN_PR_APPROVAL rejection 2026-09-01; per-stage occurrence counter, consistent with history line 21) = PASS. implementation-verifier superseded implementation_verification v1 -> v2 (consumes implementation_report v2). ./gradlew clean build BUILD SUCCESSFUL (exit 0); 67 tests / 0 failures / 0 errors / 0 skipped across 8 suites (was 62/7; +5: 3 RegistrationRequestTest, 2 CustomerServiceTest). 0 Critical, 0 Major, 3 Minor. AC-001..AC-007 all VERIFIED."
+  - "RC-1 VERIFIED (closes prior v1 finding MF-5): RegistrationRequest.toString() masks password as password=*** (mirrors Customer.toString()); RegistrationRequestTest 3/3 proves the submitted plaintext is never rendered, null-safe, password() accessor unchanged."
+  - "RC-3 VERIFIED (closes prior v1 finding MF-3): CustomerService.register wraps save() in try/catch(DataIntegrityViolationException); isEmailUniquenessViolation() maps a uq_customer_email violation (Hibernate constraint name + case-insensitive cause-chain message fallback) to DuplicateEmailException -> existing 409; other integrity violations rethrown unchanged. CustomerServiceTest +2 (positive + isSameAs negative, negative is load-bearing). AC-002 concurrent path -> RECONCILED. No HTTP type added to service; no new declared dependency (org.hibernate.exception.ConstraintViolationException is transitive via spring-boot-starter-data-jpa; build.gradle.kts diff empty)."
+  - "RC-9 code half VERIFIED: SecurityConfig javadoc + one inline comment reworded 'deny-by-default' -> 'authentication-required by default (SC-4), not a literal denyAll()'; anyRequest().authenticated() unchanged; RegistrationSecurityPostureTest 4/4 green (one doc comment reworded, no assertion change)."
+  - "RC-10 VERIFIED: src/main/java/org/example/customerportal/docs/ subtree (stray hooks/tool-usage.jsonl) confirmed absent; customerportal package tree now only config/controller/exception/model/repository/security/service/validation."
+  - "OPEN finding MF-a (Minor, forwarded — NOT a loop-back from IMPLEMENTATION_VERIFICATION; RC-9 documentation half): docs/specifications/US-001-spec.md:135 (SEC-1 row) and docs/designs/api/US-001-api-design.md:138/:174 still say 'deny-by-default (SC-4)' without the clarifying note that this means authentication-required-by-default (anyRequest().authenticated()), not literal denyAll(). Owned by spec-writer / openapi-designer. RC-9 is closable ONLY with both halves in place; if the note is still unpublished when RECONCILIATION re-runs, RECONCILIATION must route it via its loop_back keys specification_gap -> SPECIFICATION and/or design_gap -> API_DESIGN, not mark RC-9 closed. Code side complete and SC-4-compliant; no behavioural impact. PASS-and-forward is correct here because SPECIFICATION / API_DESIGN are unreachable from this stage (only loop-back is IMPLEMENTATION)."
+  - "MF-b (Minor, carried from v1 MF-2): implemented 400/415 error message strings differ verbatim from the OpenAPI illustrative examples; 409 matches exactly; AC-6 body shape preserved; tests assert status+shape only. Optional openapi-designer example alignment; no loop-back."
+  - "MF-c (Minor, carried from v1 MF-4, reframed): specification v1 / implementation_plan v1 / ac_test_matrix v1 front matter reference open_decisions v1 (now v2). open_decisions v2 change-log = 'No decision content changed'; open_decisions is not an input to IMPLEMENTATION_VERIFICATION; code uses resolved values. Staleness WAIVED; RECONCILIATION to note, not re-open."
+  - "NEXT: SECURITY_REVIEW is also a mandated re-run (occurrence 2). security_review v1 consumed open_decisions v1 + implementation_report v1 and predates RC-1/RC-3/RC-9/RC-10 -> INVALIDATED; security-reviewer must supersede it v1 -> v2 consuming implementation_report v2 + implementation_verification v2. Items forwarded to SECURITY_REVIEW: R-2 CSRF-scope arbitration; R-7 message-hygiene sign-off; completeness of the RC-3 constraint-name/message heuristic against crafted inputs; confirm no debug logging config surfaces a bound RegistrationRequest pre-mask; sign-off that the documented RC-9 resolution satisfies SC-4."
+  - "--- prior IMPLEMENTATION attempt 2 findings retained below ---"
   - "IMPLEMENTATION attempt 2 (loop_back from RECONCILIATION v2, key implementation_drift) = PASS. springboot-implementor superseded implementation_report v1 -> v2 (consumes open_decisions v2 + clarification_report v2). ./gradlew clean build BUILD SUCCESSFUL; 67 tests (was 62; +5), 0 failures/errors/skipped, 8 suites. Change set: 3 prod files + 2 test files modified, 1 new test class, 1 stray subtree deleted; no dependency/schema/config change; OD-005:A scope respected."
   - "RC-1 / REJECT-3 DONE: RegistrationRequest.toString() masks password (password=***), consistent with Customer.toString(). New RegistrationRequestTest (3 tests) proves the submitted plaintext is never rendered and the password() accessor is unchanged. AC-004 -> RECONCILED."
   - "RC-3 / REJECT-4 DONE: CustomerService.register catches DataIntegrityViolationException around save(), maps a uq_customer_email violation (constraint-scoped: Hibernate constraint name + message-token fallback) to DuplicateEmailException -> existing 409; any other integrity violation is rethrown unchanged. CustomerServiceTest +2 deterministic cases; negative case confirmed load-bearing. AC-002 -> RECONCILED (both single-request and concurrent paths)."
@@ -46,6 +56,6 @@ non_blocking_findings:
   - "R-7 (SECURITY_REVIEW owns): @ValidPassword message is the fixed string 'Password does not meet the security policy.'; no-echo asserted by tests."
   - "ORCHESTRATOR STATE REPAIR (TEST_WRITING continue, 2026-08-31): docs/plans/US-001-implementation-plan.md front-matter status was DRAFT after PLAN_REVIEW + HUMAN_PLAN_APPROVAL; corrected to APPROVED, updated_at 2026-08-31T11:20:00Z. No version bump, no content change. (Retained for audit.)"
 started_at: 2026-08-30T23:50:01Z
-updated_at: 2026-09-02T14:52:00Z
+updated_at: 2026-09-02T15:04:46Z
 completed_at: null
 archived_at: null
