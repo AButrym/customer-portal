@@ -4,30 +4,46 @@
 version: 1
 story: US-001
 workflow: story-delivery
-current_stage: SPEC_REVIEW
-previous_stage: SPECIFICATION
-last_completed_stage: SPECIFICATION
-status: IN_PROGRESS
+current_stage: HUMAN_SPEC_APPROVAL
+previous_stage: SPEC_REVIEW
+last_completed_stage: SPEC_REVIEW
+status: WAITING_FOR_HUMAN
 attempt: 1
-last_invoked_skill: spec-writer
+last_invoked_skill: spec-verifier
 last_result:
   verdict: PASS
-  stage: SPECIFICATION
-  recorded_at: 2026-09-02T16:35:00Z
+  stage: SPEC_REVIEW
+  recorded_at: 2026-09-02T17:00:00Z
 last_artifacts:
-  - type: specification
-    path: docs/specifications/US-001-spec.md
+  - type: specification_review
+    path: docs/reviews/specifications/US-001-spec-review.md
     version: 2
-pending_human_gate: null
+pending_human_gate:
+  stage: HUMAN_SPEC_APPROVAL
+  status: PENDING
+  required_artifacts:
+    - type: specification
+      path: docs/specifications/US-001-spec.md
+      version: 2
+    - type: specification_review
+      path: docs/reviews/specifications/US-001-spec-review.md
+      version: 2
+  automated_verdict: PASS
+  blocking_findings: []
+  requested_at: 2026-09-02T17:00:00Z
+  decided_at: null
+  decided_by: null
+  comment: null
 blocking_issues: []
 non_blocking_findings:
-  - "SPECIFICATION occurrence 2 (attempt 2), loop-back from RECONCILIATION v3 key specification_gap = PASS. spec-writer superseded specification v1 -> v2: added the SC-4 clarifying note to sec 7 SEC-1 row ('deny by default' = authentication-required by default per anyRequest().authenticated(), not literal denyAll()), refreshed input refs to clarification_report v2 / open_decisions v2, added a change log. Diff confined (git: 14 insertions / 7 deletions, one file). No functional / validation / error-handling / API-contract / test change. specification v2 status DRAFT pending SPEC_REVIEW + HUMAN_SPEC_APPROVAL re-approval."
-  - "RC-9 (Major) STATUS: spec half now applied (specification v2 sec 7). API_DESIGN half still OPEN - openapi-designer must add the same note to docs/designs/api/US-001-api-design.md sec 6 + sec 8 when API_DESIGN re-runs in this cascade (:138 / :174 still read 'deny-by-default (SC-4)' without the note). RECONCILIATION must not mark RC-9 closed until both halves land."
-  - "CASCADE CONSEQUENCE FOR THE HUMAN: this loop-back re-runs the full pipeline (SPEC_REVIEW, HUMAN_SPEC_APPROVAL gate, API_DESIGN, DB_DESIGN, DESIGN_REVIEW, IMPACT_ANALYSIS, IMPLEMENTATION_PLANNING, PLAN_REVIEW, HUMAN_PLAN_APPROVAL gate, TEST_WRITING, IMPLEMENTATION, IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, RECONCILIATION) for a one-line wording note. stage-map.yaml has no shorter path. Alternative the human may prefer: instead of running this cascade, override at HUMAN_PR_APPROVAL accepting the current wording as-is (code is SC-4-compliant; both automated reviews PASS on everything else) - a gate decision, not something RECONCILIATION can return as PASS."
-  - "CURRENCY: implementation_verification v2 + security_review v2 are current (consumed implementation_report v2 + open_decisions v2) and both PASS. Working tree clean except this specification v2 change; no src/** change since security_review v2 commit 640850d. Not a BLOCKED condition. implementation_verification v2 front matter status DRAFT vs envelope artifact_status APPROVED = established repo pattern."
-  - "PR CANDIDATE SCOPE (reconciliation v3 sec 15): candidate_files 52 = 49 category-(a) US-001 story paths + 3 category-(b) harness-maintenance (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore). excluded_files 0. pr-preparer consumes this and must not re-derive; counts shift as workflow state/history are rewritten (stay category b). Superseded artifact versions in this cascade add to the category-(a) set."
+  - "SPEC_REVIEW occurrence 2 (spec-verifier), loop-back cascade from RECONCILIATION v3 key specification_gap = PASS. spec-verifier superseded specification_review v1 -> v2: delta review of specification v2 (SC-4 wording clarification in sec 7 SEC-1, input refs -> clarification_report v2 / open_decisions v2, change log added). No Critical/Major. v1 findings F-1..F-6 carried unchanged (advisory); new Minor F-7: specification v2 still labels OD-001..OD-006 dependent values 'draft' though open_decisions v2 marks them RESOLVED - every draft value equals the resolved choice, presentation only, downstream artifacts already consume resolved values. specification_review v2 status APPROVED."
+  - "RC-9 (Major) STATUS: SPECIFICATION half now APPROVED at SPEC_REVIEW (specification v2 sec 7 SEC-1 note, spec-verifier PASS). API_DESIGN half still OPEN - openapi-designer must add the same SC-4 clarifying note to docs/designs/api/US-001-api-design.md sec 6 + sec 8 when API_DESIGN re-runs in this cascade (:138 / :174 still read 'deny-by-default (SC-4)' without the note). RECONCILIATION must not mark RC-9 closed until both halves land."
+  - "CASCADE COST FOR THE HUMAN: at HUMAN_SPEC_APPROVAL the only two choices are /so:approve (-> API_DESIGN, cascade continues) or /so:reject (-> SPECIFICATION, which fixes nothing - spec v2 is sound and spec-verifier PASSed it). There is no override option at this gate; HUMAN_PR_APPROVAL is the LAST gate of this cascade, reachable only by running it, not an alternative to it. If approved, 13 automated stages + the HUMAN_PLAN_APPROVAL gate remain, and the only substantive work left in the entire cascade is openapi-designer adding the same one-line SC-4 note to docs/designs/api/US-001-api-design.md sec 6 + sec 8 (RC-9 API half). Everything else re-runs unchanged. LEVER THE HUMAN HAS (orchestrator cannot apply it): this repo already accepted a staleness waiver for implementation_plan v1 / ac_test_matrix v1 against open_decisions v1->v2 on the grounds the change log records nothing material changed; specification v2's change log makes the same claim. A human could similarly waive the RC-9 API-design wording out of band rather than run the cascade. Not an orchestrator decision - surfaced for the human."
+  - "CURRENCY: implementation_verification v2 + security_review v2 are current (consumed implementation_report v2 + open_decisions v2) and both PASS. Working tree change is specification v2 + specification_review v2 (docs only); no src/** change since security_review v2 commit 640850d. Not a BLOCKED condition."
+  - "PR CANDIDATE SCOPE (reconciliation v3 sec 15): candidate_files 52 = 49 category-(a) US-001 story paths + 3 category-(b) harness-maintenance (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore). excluded_files 0. pr-preparer consumes this and must not re-derive; counts shift as workflow state/history are rewritten (stay category b). Superseded artifact versions in this cascade (specification v1, specification_review v1, ...) add to the category-(a) set."
   - "OPEN non-loop-back items for the human (not blockers): D-2 hook output-path fix for the removed tool-usage.jsonl (hook config, not a PR file); RC-2/SR-2 optional OpenAPI illustrative-example alignment; RC-3-residual/SR-3 optional constraint-name-only hardening; SR-4/SR-5 future H2 credential hardening; staleness waiver on implementation_plan v1 / ac_test_matrix v1 open_decisions v1->v2 front-matter references (v2 change-log: 'No decision content changed')."
+  - "SPEC_REVIEW findings F-1..F-7 (all Minor/advisory, none block HUMAN_SPEC_APPROVAL): F-1 AC-007 'AC-2' annotation ambiguous; F-2 sec 6.3 unknown-JSON-field handling deferred to API_DESIGN without an OD entry; F-3 FR-2 bundles Content-Type (415) + body-shape; F-4 PC-9 VARCHAR(60) cited early; F-5 sec 6.2 password max 72 'characters' vs 72 bytes; F-6 entity 'Customer' vs glossary 'Account' (reconciled downstream); F-7 residual 'draft' labelling on resolved ODs."
 started_at: 2026-08-30T23:50:01Z
-updated_at: 2026-09-02T16:35:00Z
+updated_at: 2026-09-02T17:00:00Z
 completed_at: null
 archived_at: null
