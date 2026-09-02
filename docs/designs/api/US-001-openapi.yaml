@@ -6,12 +6,20 @@ info:
     HTTP contract for US-001 Customer Registration. Adds a single public
     endpoint that lets an unauthenticated client self-register a Customer
     account. Authoritative artifact paths: docs/workflow/artifact-paths.yaml.
-  version: "1"
+  version: "2"
 
 x-story: US-001
 x-source-specification: docs/specifications/US-001-spec.md
-x-source-specification-version: 1
+x-source-specification-version: 2
 x-produced-by: openapi-designer
+x-auth-posture: >
+  This Story adds one public endpoint (POST /api/v1/customers). Every other
+  endpoint remains deny-by-default per security-conventions.md SC-4, where
+  "deny by default" means authentication-required by default
+  (anyRequest().authenticated() in the security config) — not a literal
+  denyAll(). Matches Specification §7 SEC-1 and the SecurityConfig code comment
+  (resolves RECONCILIATION v3 RC-9 / security-review v2 SR-1 /
+  implementation-verification v2 MF-a).
 x-open-decisions:
   OD-001: "A — Jakarta @Email semantics + email maxLength 254"
   OD-002: "B — POST /api/v1/customers is exempt from CSRF (recorded architecture decision); CSRF remains enabled for all other endpoints"

@@ -1,18 +1,18 @@
 ---
 artifact_type: api_design
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: DRAFT
 created_at: 2026-08-31T08:18:54Z
-updated_at: 2026-08-31T09:46:30Z
+updated_at: 2026-09-02T20:10:00Z
 produced_by: openapi-designer
 inputs:
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/reviews/specifications/US-001-spec-review.md
-    version: 1
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
+    version: 2
   - path: docs/architecture/api-conventions.md
     version: null
   - path: docs/architecture/security-conventions.md
@@ -21,7 +21,7 @@ inputs:
     version: null
   - path: docs/product/non-functional-requirements.md
     version: null
-supersedes: null
+supersedes: docs/designs/api/US-001-api-design.md
 ---
 
 # API Design — US-001 Customer Registration
@@ -135,7 +135,12 @@ anywhere in the response schemas).
 ## 6. Auth model
 
 - **Authentication:** none for `POST /api/v1/customers`. Every other endpoint
-  remains deny-by-default (SC-4); this Story adds no other route.
+  remains deny-by-default (SC-4); this Story adds no other route. Here "deny by
+  default" means **authentication-required by default** per SC-4
+  (`anyRequest().authenticated()` in the security config) — **not** a literal
+  `denyAll()`. This matches security-conventions.md SC-4, Specification §7 SEC-1,
+  and the `SecurityConfig` code comment (resolves RECONCILIATION v3 RC-9 /
+  security-review v2 SR-1 / implementation-verification v2 MF-a).
 - **Authorization:** none (`x-authorization: none`). No role or ownership check.
 - **CSRF:** disabled for this single path (OD-002:B). This document is the
   recorded architecture decision required by SC-5. Session/browser endpoints
@@ -171,7 +176,7 @@ anywhere in the response schemas).
 | AC-9 single `@RestControllerAdvice` | ✅ stated in §7 (implementation obligation) |
 | SC-1 BCrypt, dual-layer policy, plaintext only inbound | ✅ `writeOnly` password, §4.1 |
 | SC-2 role `CUSTOMER`, enabled | ✅ `role` enum, §4.2 |
-| SC-4 deny-by-default, registration public | ✅ §6 |
+| SC-4 deny-by-default, registration public | ✅ §6 — "deny by default" = authentication-required by default (`anyRequest().authenticated()`), not literal `denyAll()` |
 | SC-5 CSRF exemption recorded | ✅ §6, OD-002:B |
 | SC-9 error/log hygiene | ✅ §7 |
 
@@ -201,9 +206,18 @@ result:
   loop_back_stage: null
   blocking_issues: []
   non_blocking_findings:
+    - "v2: RC-9 API_DESIGN half resolved — SC-4 clarifying note ('deny by default' = authentication-required by default per anyRequest().authenticated(), not literal denyAll()) added to §6 and §8. No contract change."
+    - "v2: input references refreshed to specification v2, specification_review v2, open_decisions v2 (spec v2 change log: no functional/validation/error-handling/API-contract/test change)."
     - "F-2 resolved: unknown/extra JSON request fields are rejected with 400 (additionalProperties: false); recorded in api_design §3."
     - "Q-1: DB_DESIGN to confirm email column length 254 and reconcile entity name Customer vs glossary Account (spec-review F-6)."
     - "Q-2: DB_DESIGN owns final password_hash column definition (spec-review F-4, PC-9 VARCHAR(60))."
     - "Q-4: password 72-limit is BCrypt bytes, not characters (spec-review F-5); OpenAPI expresses it as maxLength 72 characters only."
     - "Location header targets GET /api/v1/customers/{id}, which US-001 does not implement (future Story)."
 ```
+
+## 11. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1 | 2026-08-31 | Initial API design for US-001. |
+| 2 | 2026-09-02 | §6 and §8 clarified: SC-4 "deny by default" means authentication-required by default (`anyRequest().authenticated()`), not a literal `denyAll()` — resolves RECONCILIATION v3 RC-9 / security-review v2 SR-1 / implementation-verification v2 MF-a wording ambiguity (API_DESIGN half; SPECIFICATION half resolved in spec v2 §7 SEC-1). Input references updated to `specification` v2, `specification_review` v2, `open_decisions` v2. Companion `US-001-openapi.yaml` bumped to `version: "2"` with `x-source-specification-version: 2`. No endpoint, schema, status-code, validation, error-model, or example change. |

@@ -1,20 +1,20 @@
 ---
 artifact_type: entity_model
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: DRAFT
 created_at: 2026-08-31T09:16:56Z
-updated_at: 2026-08-31T09:46:30Z
+updated_at: 2026-09-02T20:25:00Z
 produced_by: db-designer
 inputs:
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
+    version: 2
   - path: docs/architecture/persistence-conventions.md
     version: null
   - path: docs/architecture/security-conventions.md
@@ -23,7 +23,7 @@ inputs:
     version: null
   - path: docs/product/business-glossary.md
     version: null
-supersedes: null
+supersedes: docs/designs/database/US-001-entity-model.md
 ---
 
 # Entity Model — US-001 Customer Registration
@@ -142,6 +142,13 @@ endpoint is not implemented by US-001.
 | BR-005 no plaintext passwords | only `password_hash` exists; no plaintext field |
 | BR-006 default role CUSTOMER | service sets `Role.CUSTOMER` |
 | BR-007 UTC timestamps | `created_at` / `updated_at` `TIMESTAMP WITH TIME ZONE`, JPA auditing |
+
+## 5a. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1 | 2026-08-31 | Initial entity model; approved after `DESIGN_REVIEW`. |
+| 2 | 2026-09-02 | Loop-back cascade refresh from RECONCILIATION v3 (RC-9). Input references updated to `specification` v2, `api_design` v2, `openapi` v2, `open_decisions` v2. **No entity, field, mapping, enum, invariant, or DTO-mapping change** — upstream v2 changes carry no persistence impact. |
 
 ## 6. Notes for downstream stages
 

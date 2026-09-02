@@ -1,31 +1,31 @@
 ---
 artifact_type: impact_analysis
 story: US-001
-version: 1
+version: 2
 status: DRAFT
 created_at: 2026-08-31T10:00:04Z
-updated_at: 2026-08-31T10:00:04Z
+updated_at: 2026-09-02T20:08:34Z
 produced_by: impact-analyzer
 inputs:
   - path: docs/stories/US-001-register-customer.md
     version: null
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/reviews/specifications/US-001-spec-review.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
+    version: 2
   - path: docs/designs/database/US-001-db-design.md
-    version: 1
+    version: 2
   - path: docs/designs/database/US-001-entity-model.md
-    version: 1
+    version: 2
   - path: docs/reviews/designs/US-001-design-review.md
-    version: 1
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
-supersedes: null
+    version: 2
+supersedes: docs/impact-analysis/US-001-impact-analysis.md
 semantic_analysis: IDEA_MCP
 ---
 
@@ -33,10 +33,17 @@ semantic_analysis: IDEA_MCP
 
 Predictive analysis of the expected change surface for US-001, produced before
 implementation planning. It describes where and how the approved Story is
-expected to affect the system based on the approved Specification (v1), the
-approved API design (v1), the approved database design (v1), the design review
-(v1, PASS), and the current repository state. It is **not** a record of files
+expected to affect the system based on the approved Specification (v2), the
+approved API design (v2), the approved database design (v2), the design review
+(v2, PASS), and the current repository state. It is **not** a record of files
 actually changed — Reconciliation captures that later.
+
+## Change Log
+
+| Version | Date | Change |
+|---|---|---|
+| 1 | 2026-08-31 | Initial predictive impact analysis (all-v1 inputs). Verdict PASS. |
+| 2 | 2026-09-02 | Loop-back cascade re-run (occurrence 2) from `RECONCILIATION` v3, key `specification_gap`. Input references refreshed to all-v2 artifacts. The only substantive upstream change in the cascade is the RC-9 **SC-4 wording clarification** ("deny by default" = *authentication-required by default* per `anyRequest().authenticated()`, not a literal `denyAll()`) — applied in §9 Security Impact and §16. `open_decisions` is now v2 / `APPROVED` with OD-001..OD-006 recorded `RESOLVED`, so the v1 "entries still OPEN" documentation-lag caveat is removed (§2, §14, §17). New advisory limitation added for design-review D-11 (spec v2 front-matter still `DRAFT`). **No change to the expected change surface, module/package/file predictions, API contract, persistence model, or risk set** — the v1..v2 cascade carries no functional, validation, error-handling, API-contract, schema, or test impact. |
 
 ## 1. Executive Summary
 
@@ -45,10 +52,13 @@ actually changed — Reconciliation captures that later.
   emails (case-insensitive), stores a BCrypt password hash, and creates an
   enabled `CUSTOMER` account with UTC audit timestamps.
 - **Expected scope:** greenfield feature slice on a bare Spring Boot skeleton.
-  The repository currently contains only `CustomerPortalApplication` and a
-  context-load test; **none** of the architecture packages
-  (`controller`, `service`, `repository`, `model.*`, `validation`, `security`,
-  `exception`, `config`) exist yet. Almost every change is **Create**.
+  At the time of the original prediction the repository contained only
+  `CustomerPortalApplication` and a context-load test; **none** of the
+  architecture packages (`controller`, `service`, `repository`, `model.*`,
+  `validation`, `security`, `exception`, `config`) existed. Almost every change
+  is **Create**. (Implementation has since landed under the cascade — see §17;
+  this artifact stays a prediction against the approved designs, not a record of
+  actual changes.)
 - **Affected architectural areas:** all layers of AD-2
   (`controller → service → repository → model.entity`), plus `model.request`,
   `model.dto`, `validation`, `security`, `exception`, `config`; persistence
@@ -56,26 +66,27 @@ actually changed — Reconciliation captures that later.
   profile); the Gradle build (add `spring-boot-starter-validation`, mandated by
   AD-5).
 - **Overall risk:** **Low–Medium.** The feature is small, additive, and fully
-  specified with all six Open Decisions resolved. Residual risk is concentrated
-  in three known Spring Boot 4 / H2 2.x integration trip points (identity-column
-  DDL syntax, `OffsetDateTime` ↔ `TIMESTAMP WITH TIME ZONE` under
-  `ddl-auto=validate`, and Spring Security 6 filter-chain config for one public
-  CSRF-exempt path) and in the 72-**byte** BCrypt input boundary. No blocking
-  Open Decisions. No upstream artifact defect requiring loop-back.
+  specified with all six Open Decisions resolved (`open_decisions` v2,
+  `APPROVED`). Residual risk is concentrated in three known Spring Boot 4 / H2
+  2.x integration trip points (identity-column DDL syntax, `OffsetDateTime` ↔
+  `TIMESTAMP WITH TIME ZONE` under `ddl-auto=validate`, and Spring Security 6
+  filter-chain config for one public CSRF-exempt path) and in the 72-**byte**
+  BCrypt input boundary. No blocking Open Decisions. No upstream artifact defect
+  requiring loop-back.
 
 ## 2. Source Artifacts
 
 | Artifact | Path | Version | Status |
 |---|---|---|---|
 | Story | `docs/stories/US-001-register-customer.md` | (unversioned input) | IN_PROGRESS |
-| Specification | `docs/specifications/US-001-spec.md` | 1 | APPROVED |
-| Specification Review | `docs/reviews/specifications/US-001-spec-review.md` | 1 | APPROVED (PASS) |
-| API Design | `docs/designs/api/US-001-api-design.md` | 1 | APPROVED |
-| OpenAPI Contract | `docs/designs/api/US-001-openapi.yaml` | 1 | APPROVED |
-| DB Design | `docs/designs/database/US-001-db-design.md` | 1 | APPROVED |
-| Entity Model | `docs/designs/database/US-001-entity-model.md` | 1 | APPROVED |
-| Design Review | `docs/reviews/designs/US-001-design-review.md` | 1 | APPROVED (PASS) |
-| Open Decisions | `docs/decisions/US-001-open-decisions.md` | 1 | DRAFT (resolutions recorded at HUMAN_SPEC_APPROVAL) |
+| Specification | `docs/specifications/US-001-spec.md` | 2 | APPROVED at HUMAN_SPEC_APPROVAL occurrence 2 (front-matter reads `DRAFT` — design-review D-11, advisory) |
+| Specification Review | `docs/reviews/specifications/US-001-spec-review.md` | 2 | APPROVED (PASS) |
+| API Design | `docs/designs/api/US-001-api-design.md` | 2 | APPROVED (front-matter `DRAFT`; cleared DESIGN_REVIEW v2 — D-11 class) |
+| OpenAPI Contract | `docs/designs/api/US-001-openapi.yaml` | 2 | APPROVED |
+| DB Design | `docs/designs/database/US-001-db-design.md` | 2 | APPROVED (front-matter `DRAFT`; cleared DESIGN_REVIEW v2 — D-11 class) |
+| Entity Model | `docs/designs/database/US-001-entity-model.md` | 2 | APPROVED (front-matter `DRAFT`; cleared DESIGN_REVIEW v2 — D-11 class) |
+| Design Review | `docs/reviews/designs/US-001-design-review.md` | 2 | APPROVED (PASS) |
+| Open Decisions | `docs/decisions/US-001-open-decisions.md` | 2 | APPROVED — OD-001..OD-006 recorded `RESOLVED` |
 
 Architecture inputs: `architecture.md` (AD-1..AD-8), `package-map.md`,
 `api-conventions.md` (AC-1..AC-9), `persistence-conventions.md` (PC-1..PC-9),
@@ -83,10 +94,10 @@ Architecture inputs: `architecture.md` (AD-1..AD-8), `package-map.md`,
 `business-rules.md` (BR-001..BR-007), `business-glossary.md`,
 `non-functional-requirements.md` (NFR-001..NFR-008).
 
-**Open Decision resolutions** (recorded by the human at HUMAN_SPEC_APPROVAL
-2026-08-31T07:48:48Z, `history.jsonl`; `open_decisions.md` v1 still shows the
-entries as `OPEN` — the recorded resolutions are authoritative and are applied
-consistently across both designs per design-review v1):
+**Open Decision resolutions** (resolved by the human at `HUMAN_SPEC_APPROVAL`
+2026-08-31T07:48:48Z, `history.jsonl`; now recorded in `open_decisions` v2,
+`APPROVED`, and applied consistently across the Specification and both designs
+per design-review v2):
 
 | OD | Resolution | Effect relevant to planning |
 |---|---|---|
@@ -119,9 +130,9 @@ No multi-module split, no new Gradle subproject, no new source set (AD-1).
 ## 5. Package Impact
 
 Base package `org.example.customerportal`. All packages below are **new** — the
-only existing production class is `CustomerPortalApplication`. No package outside
-`package-map.md` is introduced (AD-8; design-review D-9 explicitly forbids a
-feature package such as `customer`).
+only pre-existing production class is `CustomerPortalApplication`. No package
+outside `package-map.md` is introduced (AD-8; design-review D-9 explicitly
+forbids a feature package such as `customer`).
 
 | Package | Responsibility for US-001 | Impact | Architecture constraint |
 |---|---|---|---|
@@ -132,7 +143,7 @@ feature package such as `customer`).
 | `model.request` | `RegistrationRequest { email, password }` with Bean Validation + the custom password constraint | **Create** | Bound with `@Valid` (AD-5). Unknown JSON fields rejected → `400` (API design §3). |
 | `model.dto` | `CustomerResponse { id, email, role, createdAt }`; `ErrorResponse`, `FieldError` (error body shape) | **Create** | No credential fields ever (AD-4, PC-9). |
 | `validation` | `@ValidPassword` (or similar) constraint annotation + `ConstraintValidator` implementing the SC-1 12–72 / char-class policy | **Create** | Custom constraints live here (AD-5). Message must not echo the submitted value (SC-9). |
-| `security` | `SecurityConfig` (`SecurityFilterChain`) making `POST /api/v1/customers` public + CSRF-exempt, everything else deny-by-default; `PasswordEncoder` bean (`BCryptPasswordEncoder`) | **Create** | Security config lives here (AD-7, `package-map.md`). CSRF exemption limited to the one path (OD-002:B, SC-5). |
+| `security` | `SecurityConfig` (`SecurityFilterChain`) making `POST /api/v1/customers` public + CSRF-exempt, everything else **authentication-required by default** (`anyRequest().authenticated()`, SC-4); `PasswordEncoder` bean (`BCryptPasswordEncoder`) | **Create** | Security config lives here (AD-7, `package-map.md`). CSRF exemption limited to the one path (OD-002:B, SC-5). |
 | `exception` | `DuplicateEmailException` (domain, no HTTP concepts) + one `@RestControllerAdvice` mapping validation→400, duplicate→409, unknown-field/malformed-JSON→400, media-type→415, unmapped→500 | **Create** | Single exception→HTTP mapping point (AD-6, AC-9, FR-10). No leakage (SC-9). |
 | `config` | JPA auditing enablement (`@EnableJpaAuditing` + UTC `DateTimeProvider`/clock); Jackson `FAIL_ON_UNKNOWN_PROPERTIES` if not achieved via `additionalProperties` handling in the request DTO | **Create** | Framework `@Configuration` only, no business logic (AD-7). Auditing config required by PC-6. |
 
@@ -156,7 +167,7 @@ Base path `src/main/java/org/example/customerportal/`.
 | `model/dto/FieldError.java` | `{ field, message }` element of `fieldErrors[]` | field-level validation errors | AC-6, FR-3 | HIGH |
 | `validation/ValidPassword.java` | constraint annotation | dual-layer password policy | SC-1, FR-6, Spec §6.2 | HIGH |
 | `validation/PasswordPolicyValidator.java` | `ConstraintValidator` — length **in bytes** + 4 char-class checks, safe message | SC-1 policy, 72-byte BCrypt bound | Spec §6.2, design-review D-1/D-6 | HIGH |
-| `security/SecurityConfig.java` | `SecurityFilterChain`: permit `POST /api/v1/customers`, CSRF-exempt that path, deny-by-default elsewhere | one public CSRF-exempt endpoint | SC-4, SC-5, OD-002:B, API design §6 | HIGH |
+| `security/SecurityConfig.java` | `SecurityFilterChain`: permit `POST /api/v1/customers`, CSRF-exempt that path, `anyRequest().authenticated()` elsewhere | one public CSRF-exempt endpoint | SC-4, SC-5, OD-002:B, API design §6 | HIGH |
 | `security/PasswordEncoderConfig.java` (or a bean in `SecurityConfig`) | `BCryptPasswordEncoder` bean | BCrypt hashing | SC-1, SEC-2 | HIGH |
 | `exception/DuplicateEmailException.java` | domain exception, no HTTP concept | duplicate email → 409 | AD-6, FR-4, OD-003:A | HIGH |
 | `exception/GlobalExceptionHandler.java` (`@RestControllerAdvice`) | maps validation/duplicate/unknown-field/malformed-JSON/media-type/unmapped → 400/409/400/400/415/500 | single mapping point | AD-6, AC-9, FR-10, API design §7 | HIGH |
@@ -204,7 +215,7 @@ Base path `src/main/java/org/example/customerportal/`.
   `400` (bean-validation, malformed JSON, unknown field) with `fieldErrors[]`
   for field failures; `409` (duplicate email, case-insensitive) with the
   OD-003:A message; `415` (missing/non-JSON `Content-Type`); `500` (unmapped, no
-  leak). `401`/`403` not applicable.
+  leak). `401`/`403` not applicable (public endpoint).
 - **Error contract:** single AC-6 body from the one `@RestControllerAdvice`
   (AC-9). `message` client-safe; `fieldErrors[].message` never echoes input
   (SC-9).
@@ -214,7 +225,10 @@ Base path `src/main/java/org/example/customerportal/`.
   (`RegistrationRequest`, `CustomerResponse`, `ErrorResponse`, `FieldError`).
   The contract is authoritative for shapes; the character-class policy lives in
   the schema `description` only, not a `pattern` (design-review D-1) — tests
-  source password cases from Spec §6.2.
+  source password cases from Spec §6.2. OpenAPI v2 adds only the `x-auth-posture`
+  traceability key and `info.version` / `x-source-specification-version` bumps
+  (design-review D-10) — no path, schema, response, example, or `security`
+  change.
 
 ## 8. Persistence Impact
 
@@ -249,13 +263,22 @@ Base path `src/main/java/org/example/customerportal/`.
   ordering and implicit `NOT NULL`, and (b) `OffsetDateTime` ↔ `TIMESTAMP WITH
   TIME ZONE` strict type match under `validate`. IMPLEMENTATION must make the
   build pass against `schema.sql` (NFR-7); IMPLEMENTATION_VERIFICATION checks it.
+- **v1 → v2 cascade:** DB design v2 + entity-model v2 refreshed input references
+  and change-log only; **no table / column / constraint / index / schema-init /
+  entity / field / mapping / enum change** (db-designer occurrence 2, PASS).
 
 ## 9. Security Impact
 
 - **Authentication:** none added for the endpoint; it is the single public route
   (SC-4). No `UserDetailsService`, no login flow (US-002). Every other route
-  stays deny-by-default — a `SecurityFilterChain` must be created that does not
-  accidentally open anything else.
+  stays **authentication-required by default** — a `SecurityFilterChain` must be
+  created with `anyRequest().authenticated()` that does not accidentally open
+  anything else. Per the RC-9 clarification carried into Specification v2 §7
+  SEC-1, API design v2 §6/§8, OpenAPI v2 `x-auth-posture`, and design-review v2
+  D-10: "deny by default" in this Story means *authentication-required by
+  default* (`anyRequest().authenticated()`), **not** a literal `denyAll()`. This
+  is a wording alignment only — no behaviour, filter-chain, or test change; the
+  implemented `SecurityConfig` is already SC-4-compliant.
 - **Authorization:** none for the operation (`x-authorization: none`). No role or
   ownership check.
 - **CSRF:** disabled for `POST /api/v1/customers` only; API design §6 is the
@@ -293,6 +316,7 @@ this is the predicted coverage.
 | (derived) | unknown/extra JSON field → `400`; malformed JSON → `400` | controller/web-layer |
 | (derived) | `created_at` / `updated_at` populated, UTC, `created_at` not updatable | persistence |
 | (regression) | `CustomerPortalApplicationTests.contextLoads` still passes with security + JPA enabled (needs the test profile) | Spring Boot context |
+| SC-4/SC-5 | public path reachable unauthenticated; a second arbitrary path still `401` (`anyRequest().authenticated()`, D-10) | security test |
 
 Test packages mirror production packages under `src/test/java`
 (`package-map.md`); a cross-layer integration test may sit in a
@@ -318,9 +342,10 @@ are already present.
 
 | Document | Expected update | Owner stage |
 |---|---|---|
-| `docs/designs/api/US-001-openapi.yaml` | none for US-001 (authoritative as-is); a future read endpoint will extend it | — |
+| `docs/designs/api/US-001-openapi.yaml` | none further for US-001 (v2 authoritative as-is); a future read endpoint will extend it | — |
 | `docs/architecture/api-conventions.md` AC-7 | none — session auth unchanged; token auth not introduced | — |
 | `docs/architecture/architecture.md` | none — no new AD; the CSRF exemption is recorded in API design §6, not here (per SC-5 "recorded for that Story") | — |
+| `docs/specifications/US-001-spec.md`, API/DB design front-matter `status:` | should read `APPROVED` (all cleared their review + gate); front-matter still `DRAFT` — design-review D-11, advisory | spec-writer / openapi-designer / db-designer |
 | `docs/catalog/stories.yaml` | `US-001` state transitions handled by the orchestrator, not this Story's code | story-orchestrator |
 | Implementation Report / Reconciliation / PR summary | produced by their own later stages | later stages |
 | `README` / `AGENTS.md` | none required | — |
@@ -344,18 +369,16 @@ than edit a convention doc silently.
 
 No `Critical` risks. No risk requires a new human decision beyond the normal
 HUMAN_PLAN_APPROVAL gate; all resolutions are already fixed by the approved
-artifacts.
+artifacts. The v1 → v2 cascade introduces no new risk (the SC-4 change is a
+wording alignment).
 
 ## 14. Open Decisions
 
 **No blocking Open Decisions were identified.** All six (OD-001..OD-006) were
-resolved by the human at HUMAN_SPEC_APPROVAL (see §2) and are applied
-consistently across the Specification and both designs (confirmed by
-design-review v1, PASS). The `docs/decisions/US-001-open-decisions.md` file still
-shows the entries as `OPEN`; per the design and DB-design notes and the
-`history.jsonl` record, the recorded resolutions are authoritative. This is a
-documentation lag, not an unresolved decision — it does not block IMPACT_ANALYSIS
-or IMPLEMENTATION_PLANNING.
+resolved by the human at `HUMAN_SPEC_APPROVAL` (see §2) and are now recorded
+`RESOLVED` in `open_decisions` v2 (`APPROVED`), applied consistently across the
+Specification and both designs (confirmed by design-review v2, PASS). The v1
+"entries still show `OPEN`" documentation lag is closed.
 
 No `TODO` / `TBD` / `FIXME` / `???` / "to be decided" markers were found in the
 approved input artifacts that would materially change the affected components.
@@ -365,7 +388,8 @@ approved input artifacts that would materially change the affected components.
 Facts the Implementation Planner must consume (not implementation steps):
 
 1. Greenfield: no `controller`/`service`/`repository`/`model.*`/`validation`/
-   `security`/`exception`/`config` package exists — everything is Create.
+   `security`/`exception`/`config` package existed at prediction time —
+   everything is Create.
 2. One operation only: `POST /api/v1/customers`, public, CSRF-exempt for that
    path, `application/json` required.
 3. One table only: `customer`, 7 columns, `uq_customer_email`, hand-written
@@ -396,7 +420,11 @@ Facts the Implementation Planner must consume (not implementation steps):
     existing `contextLoads` test must still pass.
 14. No new package outside `package-map.md` (AD-8); the entity-model §6 mention
     of a "customer" feature package is advisory and must not be followed (D-9).
-15. Out of scope: login/auth, `GET /customers/{id}`, rate limiting, profile,
+15. Security posture: one public endpoint; `anyRequest().authenticated()`
+    everywhere else. "Deny by default" (SC-4) = authentication-required by
+    default, **not** literal `denyAll()` (Specification v2 §7 SEC-1, API design
+    v2 §6/§8, design-review v2 D-10).
+16. Out of scope: login/auth, `GET /customers/{id}`, rate limiting, profile,
     email verification, account activation.
 
 ## 16. Traceability
@@ -412,43 +440,50 @@ Facts the Implementation Planner must consume (not implementation steps):
 | AC-007 Media type | §4 FR-2, §8 | OpenAPI `415`; API design §4.3 | MVC content negotiation, `exception` advice | web-layer |
 | (derived) unknown/malformed JSON | §6.3 | API design §3, OpenAPI `additionalProperties: false` | `config`/`model.request`, `exception` advice | web-layer |
 | NFR-4 explicit mapping / UTC audit | §9 NFR-4 | DB design §4, entity-model §2/§3 | `model.entity`, `config` auditing, `schema.sql` | persistence |
-| SC-4/SC-5 security posture | §7 SEC-1/SEC-7 | API design §6 | `security` filter chain | security test (public path + other path still `401`) |
+| SC-4/SC-5 security posture | §7 SEC-1/SEC-7 (v2 wording) | API design §6/§8; OpenAPI `x-auth-posture`; design-review D-10 | `security` filter chain (`anyRequest().authenticated()`) | security test (public path + other path still `401`) |
 
 ## 17. Analysis Limitations
 
 - **Semantic analysis: IDEA_MCP** was available and used for module discovery
-  (`get_project_modules`) and repository structure (`list_directory_tree`). It
-  confirmed the single-module layout (AD-1) and that only
-  `CustomerPortalApplication` + the context-load test exist. Deeper semantic
-  tools (symbol/call analysis) were not needed — there is no existing feature
-  code to analyse; the change surface is derived from the approved designs.
-- All predicted file paths are **MEDIUM** confidence at best where the file does
-  not yet exist — they follow `package-map.md` and the designs but the final
-  class names / splits are IMPLEMENTATION_PLANNING's to fix.
-- This analysis did **not** execute the Gradle build or boot the application.
-  The `ddl-auto=validate` / `OffsetDateTime` / H2 identity-syntax risks (R-1) are
-  real and are resolved at IMPLEMENTATION / IMPLEMENTATION_VERIFICATION, not
-  here.
-- Spring Boot 4.x starter coordinates were read from `build.gradle.kts` as-is
-  (`spring-boot-starter-webmvc`, `-data-jpa`, `-security`); the exact
-  validation-starter artifact id (`spring-boot-starter-validation`) should be
-  confirmed against the resolved BOM during planning.
-- The `open_decisions.md` artifact status/body lag (entries still `OPEN`) is
-  noted but not corrected — `us-clarifier` owns that file; the authoritative
-  resolutions are in `history.jsonl` and the designs.
-- Areas that would need re-analysis: any change to the approved Specification or
-  either design (would trigger a loop-back), or discovery during planning that a
-  new package / dependency / architectural decision is genuinely required.
+  (`get_project_modules`) and repository structure inspection. It confirmed the
+  single-module layout (AD-1).
+- **Occurrence 2 / cascade context:** this re-run is a loop-back cascade from
+  `RECONCILIATION` v3 (`specification_gap`). Implementation, tests,
+  `IMPLEMENTATION_VERIFICATION` v2, and `SECURITY_REVIEW` v2 have already run and
+  are current/PASS; no `src/**` change since commit `640850d`. This artifact
+  remains a **prediction against the approved designs**, not a record of actual
+  changes — Reconciliation owns the actual-change record. The v1 predictions are
+  broadly borne out by the landed code (all predicted packages/classes exist;
+  `InvalidPasswordException` is an additional class; `PasswordEncoderConfig` /
+  `JacksonConfig` were folded into `SecurityConfig` / the advice rather than
+  standalone).
+- All predicted file paths remain **MEDIUM** confidence as predictions where the
+  file did not exist at prediction time — final class names / splits are
+  IMPLEMENTATION_PLANNING's to fix.
+- This analysis did **not** re-execute the Gradle build or boot the application.
+  The `ddl-auto=validate` / `OffsetDateTime` / H2 identity-syntax risks (R-1)
+  are owned by IMPLEMENTATION / IMPLEMENTATION_VERIFICATION.
+- **design-review D-11 (advisory):** Specification v2 and the API/DB design v2
+  artifacts carry front-matter `status: DRAFT` although each cleared its review
+  and (for the spec) `HUMAN_SPEC_APPROVAL` occurrence 2. The recorded gate/review
+  decisions are authoritative; owners are `spec-writer` / `openapi-designer` /
+  `db-designer`. Not a blocker and no design/PR impact.
+- Areas that would need re-analysis: any further change to the approved
+  Specification or either design (would trigger a loop-back), or discovery during
+  planning that a new package / dependency / architectural decision is genuinely
+  required.
 
 ## 18. Readiness Result
 
 **Verdict: PASS.** The expected change surface is identified with acceptable
-confidence. US-001 is a small, additive, fully specified feature on a greenfield
-skeleton; every Open Decision is resolved and consistently applied; no approved
-upstream artifact is wrong or incomplete, so no loop-back is warranted. Residual
-risks (R-1..R-8) are all owned by later stages (IMPLEMENTATION,
-IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW) and are carried forward as
-non-blocking findings. The Story may proceed to IMPLEMENTATION_PLANNING.
+confidence and is unchanged by the v1 → v2 cascade. US-001 is a small, additive,
+fully specified feature; every Open Decision is resolved and consistently applied
+(`open_decisions` v2, `APPROVED`); the only substantive upstream change is the
+RC-9 SC-4 wording clarification, which is a documentation alignment with no
+behaviour, contract, schema, or test impact. No approved upstream artifact is
+wrong or incomplete, so no loop-back is warranted. Residual risks (R-1..R-8) are
+owned by later stages and carried forward as non-blocking findings. The Story may
+proceed to IMPLEMENTATION_PLANNING.
 
 ```yaml
 result:
@@ -462,14 +497,16 @@ result:
   loop_back_stage: null
   blocking_issues: []
   non_blocking_findings:
-    - "Greenfield: all app packages (controller, service, repository, model.*, validation, security, exception, config) are Create; only CustomerPortalApplication + contextLoads test exist."
+    - "Occurrence 2 (loop-back cascade from RECONCILIATION v3, specification_gap). Input references refreshed to all-v2 artifacts; expected change surface, module/package/file predictions, API contract, persistence model, and risk set all unchanged."
+    - "SC-4 wording alignment (RC-9 / design-review D-10): 'deny by default' = authentication-required by default (anyRequest().authenticated()), not literal denyAll(). Applied in spec v2 §7 SEC-1, API design v2 §6/§8, OpenAPI v2 x-auth-posture. Documentation-only; no behaviour/contract/schema/test change."
     - "R-1: ddl-auto=validate startup vs OffsetDateTime <-> TIMESTAMP WITH TIME ZONE and H2 2.x IDENTITY clause ordering (design-review D-5); IMPLEMENTATION/IMPLEMENTATION_VERIFICATION own it."
     - "R-2: Spring Security 6 SecurityFilterChain must scope the CSRF exemption + public matcher to POST /api/v1/customers only and keep anyRequest().authenticated(); SECURITY_REVIEW verifies."
     - "R-3/D-6: password 72 limit is BYTES of BCrypt input, not characters; enforce in the validation constraint and the service re-check; TEST_WRITING adds the boundary vector."
     - "R-4/D-7: choose the unknown-JSON-field rejection mechanism (Jackson FAIL_ON_UNKNOWN_PROPERTIES vs DTO) in planning; advice maps unknown-field and malformed JSON to 400 (API Q-3)."
-    - "R-5: existing CustomerPortalApplicationTests.contextLoads will need a test profile / in-memory datasource once Security + JPA are enabled (NFR-7)."
+    - "R-5: existing CustomerPortalApplicationTests.contextLoads needs a test profile / in-memory datasource once Security + JPA are enabled (NFR-7)."
     - "R-6: JPA auditing DateTimeProvider must be pinned to UTC (BR-007, PC-6); config class, not the main application class (AD-7)."
     - "Dependency: add spring-boot-starter-validation to build.gradle.kts - required by AD-5, first-party starter version-managed by the existing BOM, not a discretionary third-party dependency; confirm at HUMAN_PLAN_APPROVAL."
     - "Entity naming (D-2) and role-as-enum-column (D-3) confirmed by DESIGN_REVIEW; planning must use package-map.md packages, not the entity-model 'customer' feature-package note (D-9, AD-8)."
-    - "open_decisions.md v1 still shows OD-001..OD-006 as OPEN; authoritative resolutions are in history.jsonl (HUMAN_SPEC_APPROVAL) and both designs - documentation lag, non-blocking."
+    - "open_decisions is now v2 / APPROVED with OD-001..OD-006 RESOLVED; the v1 'entries still OPEN' documentation lag is closed."
+    - "design-review D-11 (advisory): specification v2 + API/DB design v2 front-matter status reads DRAFT though each cleared its review/gate; owners spec-writer / openapi-designer / db-designer; no design or PR impact."
 ```

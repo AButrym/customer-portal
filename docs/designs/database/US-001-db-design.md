@@ -1,20 +1,20 @@
 ---
 artifact_type: database_design
 story: US-001
-version: 1
-status: APPROVED
+version: 2
+status: DRAFT
 created_at: 2026-08-31T09:16:56Z
-updated_at: 2026-08-31T09:46:30Z
+updated_at: 2026-09-02T20:25:00Z
 produced_by: db-designer
 inputs:
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
+    version: 2
   - path: docs/decisions/US-001-open-decisions.md
-    version: 1
+    version: 2
   - path: docs/architecture/persistence-conventions.md
     version: null
   - path: docs/architecture/security-conventions.md
@@ -23,7 +23,7 @@ inputs:
     version: null
   - path: docs/product/business-glossary.md
     version: null
-supersedes: null
+supersedes: docs/designs/database/US-001-db-design.md
 ---
 
 # Database Design — US-001 Customer Registration
@@ -47,9 +47,9 @@ Persistence behavior **does** change, so `DB_DESIGN` is applicable (not
 
 ## 2. Open Decisions applied
 
-Resolutions recorded by the human at `HUMAN_SPEC_APPROVAL` (2026-08-31T07:48:48Z).
-The `open_decisions.md` file still shows entries as `OPEN`; the recorded
-resolutions are authoritative.
+Resolutions recorded by the human at `HUMAN_SPEC_APPROVAL` (2026-08-31T07:48:48Z)
+and now reflected in `open_decisions` v2 (`OD-001:A OD-002:B OD-003:A OD-004:A
+OD-005:A OD-006:A`).
 
 | OD | Resolution | Effect on this design |
 |---|---|---|
@@ -238,7 +238,14 @@ Notes for `IMPLEMENTATION`:
    validation + service, not in the schema — `password_hash` is `VARCHAR(60)`.
    `TEST_WRITING` / `IMPLEMENTATION` own the 72-byte boundary vector.
 
-## 11. Result
+## 11. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1 | 2026-08-31 | Initial database design; approved after `DESIGN_REVIEW`. |
+| 2 | 2026-09-02 | Loop-back cascade refresh from RECONCILIATION v3 (RC-9). Input references updated to `specification` v2, `api_design` v2, `openapi` v2, `open_decisions` v2. §2 note aligned to `open_decisions` v2 recording the resolutions. **No table, column, constraint, index, schema-init, or sensitive-data change** — the upstream v2 changes (SEC-1 "deny by default" wording clarification, input-reference refreshes) carry no persistence impact. |
+
+## 12. Result
 
 ```yaml
 result:

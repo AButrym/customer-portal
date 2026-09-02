@@ -4,46 +4,41 @@
 version: 1
 story: US-001
 workflow: story-delivery
-current_stage: HUMAN_SPEC_APPROVAL
-previous_stage: SPEC_REVIEW
-last_completed_stage: SPEC_REVIEW
-status: WAITING_FOR_HUMAN
+current_stage: IMPLEMENTATION
+previous_stage: TEST_WRITING
+last_completed_stage: TEST_WRITING
+status: IN_PROGRESS
 attempt: 1
-last_invoked_skill: spec-verifier
+last_invoked_skill: test-writer
 last_result:
   verdict: PASS
-  stage: SPEC_REVIEW
-  recorded_at: 2026-09-02T17:00:00Z
+  stage: TEST_WRITING
+  recorded_at: 2026-09-03T09:00:00Z
 last_artifacts:
-  - type: specification_review
-    path: docs/reviews/specifications/US-001-spec-review.md
+  - type: test_strategy
+    path: docs/tests/US-001-test-strategy.md
     version: 2
-pending_human_gate:
-  stage: HUMAN_SPEC_APPROVAL
-  status: PENDING
-  required_artifacts:
-    - type: specification
-      path: docs/specifications/US-001-spec.md
-      version: 2
-    - type: specification_review
-      path: docs/reviews/specifications/US-001-spec-review.md
-      version: 2
-  automated_verdict: PASS
-  blocking_findings: []
-  requested_at: 2026-09-02T17:00:00Z
-  decided_at: null
-  decided_by: null
-  comment: null
+  - type: ac_test_matrix
+    path: docs/tests/US-001-ac-test-matrix.md
+    version: 2
+  - type: test_generation_report
+    path: docs/evidence/US-001-test-generation-report.md
+    version: 2
+pending_human_gate: null
 blocking_issues: []
 non_blocking_findings:
-  - "SPEC_REVIEW occurrence 2 (spec-verifier), loop-back cascade from RECONCILIATION v3 key specification_gap = PASS. spec-verifier superseded specification_review v1 -> v2: delta review of specification v2 (SC-4 wording clarification in sec 7 SEC-1, input refs -> clarification_report v2 / open_decisions v2, change log added). No Critical/Major. v1 findings F-1..F-6 carried unchanged (advisory); new Minor F-7: specification v2 still labels OD-001..OD-006 dependent values 'draft' though open_decisions v2 marks them RESOLVED - every draft value equals the resolved choice, presentation only, downstream artifacts already consume resolved values. specification_review v2 status APPROVED."
-  - "RC-9 (Major) STATUS: SPECIFICATION half now APPROVED at SPEC_REVIEW (specification v2 sec 7 SEC-1 note, spec-verifier PASS). API_DESIGN half still OPEN - openapi-designer must add the same SC-4 clarifying note to docs/designs/api/US-001-api-design.md sec 6 + sec 8 when API_DESIGN re-runs in this cascade (:138 / :174 still read 'deny-by-default (SC-4)' without the note). RECONCILIATION must not mark RC-9 closed until both halves land."
-  - "CASCADE COST FOR THE HUMAN: at HUMAN_SPEC_APPROVAL the only two choices are /so:approve (-> API_DESIGN, cascade continues) or /so:reject (-> SPECIFICATION, which fixes nothing - spec v2 is sound and spec-verifier PASSed it). There is no override option at this gate; HUMAN_PR_APPROVAL is the LAST gate of this cascade, reachable only by running it, not an alternative to it. If approved, 13 automated stages + the HUMAN_PLAN_APPROVAL gate remain, and the only substantive work left in the entire cascade is openapi-designer adding the same one-line SC-4 note to docs/designs/api/US-001-api-design.md sec 6 + sec 8 (RC-9 API half). Everything else re-runs unchanged. LEVER THE HUMAN HAS (orchestrator cannot apply it): this repo already accepted a staleness waiver for implementation_plan v1 / ac_test_matrix v1 against open_decisions v1->v2 on the grounds the change log records nothing material changed; specification v2's change log makes the same claim. A human could similarly waive the RC-9 API-design wording out of band rather than run the cascade. Not an orchestrator decision - surfaced for the human."
-  - "CURRENCY: implementation_verification v2 + security_review v2 are current (consumed implementation_report v2 + open_decisions v2) and both PASS. Working tree change is specification v2 + specification_review v2 (docs only); no src/** change since security_review v2 commit 640850d. Not a BLOCKED condition."
-  - "PR CANDIDATE SCOPE (reconciliation v3 sec 15): candidate_files 52 = 49 category-(a) US-001 story paths + 3 category-(b) harness-maintenance (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore). excluded_files 0. pr-preparer consumes this and must not re-derive; counts shift as workflow state/history are rewritten (stay category b). Superseded artifact versions in this cascade (specification v1, specification_review v1, ...) add to the category-(a) set."
-  - "OPEN non-loop-back items for the human (not blockers): D-2 hook output-path fix for the removed tool-usage.jsonl (hook config, not a PR file); RC-2/SR-2 optional OpenAPI illustrative-example alignment; RC-3-residual/SR-3 optional constraint-name-only hardening; SR-4/SR-5 future H2 credential hardening; staleness waiver on implementation_plan v1 / ac_test_matrix v1 open_decisions v1->v2 front-matter references (v2 change-log: 'No decision content changed')."
-  - "SPEC_REVIEW findings F-1..F-7 (all Minor/advisory, none block HUMAN_SPEC_APPROVAL): F-1 AC-007 'AC-2' annotation ambiguous; F-2 sec 6.3 unknown-JSON-field handling deferred to API_DESIGN without an OD entry; F-3 FR-2 bundles Content-Type (415) + body-shape; F-4 PC-9 VARCHAR(60) cited early; F-5 sec 6.2 password max 72 'characters' vs 72 bytes; F-6 entity 'Customer' vs glossary 'Account' (reconciled downstream); F-7 residual 'draft' labelling on resolved ODs."
+  - "TEST_WRITING occurrence 1 (as a stage event) PASS 2026-09-03. test-writer superseded test_strategy v1->v2, ac_test_matrix v1->v2, test_generation_report v1->v2; input refs refreshed to the all-v2 artifact chain (specification v2, api_design v2, openapi v2, database_design v2, entity_model v2, impact_analysis v2, implementation_plan v2, plan_review v2). CLOSES the ac_test_matrix half of the prior staleness waiver (the implementation_plan half was closed at IMPLEMENTATION_PLANNING occ.2). NO src/** change made by this stage (git status --porcelain src/ empty; last src commit 6c7d9e8) — preserves implementation_verification v2 + security_review v2 currency ('no src/** change since 640850d')."
+  - "TEST_WRITING green-phase adjudication: the feature is already implemented (built by the earlier IMPLEMENTATION occurrence in this RECONCILIATION v3 cascade). ./gradlew clean test -> BUILD SUCCESSFUL, 67 tests / 0 failed / 0 errors / 0 skipped across 8 classes. Every v1 RED / DEFERRED->IMPLEMENTATION row is now GREEN with a concrete test method; RegistrationRequestTest (RC-1/REJECT-3 toString masking) and the RC-3 concurrent-duplicate + heuristic-scope service rows are enumerated in ac_test_matrix v2 (were untracked in v1). test-writer made no src/test edit because the cascade delta is documentation-only and an edit would re-stale the two downstream reviews."
+  - "TEST_WRITING non-blocking findings: (1) RegistrationSecurityPostureTest uses not(401)/not(403) hamcrest matchers on 2 scenarios - investigated, adequate: each is paired with a strict-status test elsewhere (validRegistrationReturns201..., protectedRouteReturns401...); no mandatory AC rests on a not(...) matcher. (2) CustomerPersistenceTest uses @SpringBootTest+@Transactional rather than plan skeleton C-T2's @DataJpaTest - stronger evidence, deviation already in the implementation report. Neither is a src-edit trigger."
+  - "TEST_WRITING re-adjudicated v1 test_strategy sec 8: plan-review F-3 (401 vs 302 tripwire) RESOLVED - protectedRouteReturns401WhenUnauthenticated passes; open_decisions 'still OPEN' note DEAD (v2/APPROVED); plan edit M-4 LANDED (@ActiveProfiles(\"test\") on CustomerPortalApplicationTests). plan-review v2 F-2 (C-14 401 posture) is thereby empirically satisfied by the green suite."
+  - "CASCADE STATE: IMPLEMENTATION next (occurrence 3; occ.1 2026-08-31, occ.2 corrective pass 2026-09-02 commit 6c7d9e8). Expected to be a no-op/confirmation pass - production code already exists and passes implementation_verification v2 + security_review v2, and the cascade delta is doc-only (RC-9 SC-4 wording). Remaining after IMPLEMENTATION: IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, RECONCILIATION, HUMAN_PR_APPROVAL, PR_PREPARATION, READY_FOR_PR, COMPLETED. workflow-state.attempt reset to 1 per state-schema rule 4 (forward PASS move); compute IMPLEMENTATION's occurrence from its own history, not by incrementing this 1."
+  - "INVARIANT WAIVER (continue-flow step 4), carried: specification v2 + api_design v2 + database_design v2 + entity_model v2 carry front-matter status DRAFT though each has a recorded PASS review + (spec) HUMAN_APPROVED occ.2 in history.jsonl. Tracked as design_review v2 D-11 / plan_review v2 F-6; owners spec-writer / openapi-designer / db-designer; no downstream impact. impact_analysis v2 DRAFT is compliant (no review stage follows IMPACT_ANALYSIS)."
+  - "PLAN_REVIEW v2 findings (all Minor/advisory): F-1 execution-order per-step criteria; F-2 C-14 401-vs-302 (now empirically satisfied by the green TEST_WRITING suite); F-3 PD-1 one HttpMessageNotReadableException branch vs two OpenAPI example messages (shape preserved); F-4 spring-boot-starter-validation now present in build.gradle.kts (confirmed at HUMAN_PLAN_APPROVAL occ.2)."
+  - "SPEC_REVIEW v2 findings F-1..F-7 (all Minor/advisory) still open as presentation residue in specification v2: F-1 AC-007 'AC-2' annotation; F-2 sec 6.3 unknown-JSON-field deferral wording; F-3 FR-2 bundles 415 + body-shape; F-4 PC-9 VARCHAR(60) cited early; F-5 sec 6.2 password max 72 'characters' vs 72 bytes (plan PD-2 / tests use bytes); F-6 entity 'Customer' vs glossary 'Account'; F-7 residual 'draft:' labelling next to resolved OD references."
+  - "PR CANDIDATE SCOPE (reconciliation v3 sec 15): candidate_files 52 = 49 category-(a) US-001 story paths + 3 category-(b) harness-maintenance (docs/workflow/history.jsonl, docs/workflow/workflow-state.yaml, docs/evidence/.gitignore). excluded_files 0. pr-preparer consumes this and must not re-derive; superseded artifact versions in this cascade add to the category-(a) set (now incl. test_strategy v1, ac_test_matrix v1, test_generation_report v1)."
+  - "OPEN non-loop-back items (not blockers): D-2 hook output-path fix for the removed tool-usage.jsonl (hook config, not a PR file); RC-2/SR-2 optional OpenAPI illustrative-example alignment; RC-3-residual/SR-3 optional constraint-name-only hardening; SR-4/SR-5 future H2 credential hardening."
+  - "Cascade v2 artifacts (spec/api/db/design-review/impact/plan/plan-review/tests) are uncommitted as of this stage - latest commit is 'SPEC_REVIEW checkpoint'. Harness checkpointing, not a workflow concern."
 started_at: 2026-08-30T23:50:01Z
-updated_at: 2026-09-02T17:00:00Z
+updated_at: 2026-09-03T09:00:00Z
 completed_at: null
 archived_at: null

@@ -1,200 +1,203 @@
 ---
 artifact_type: test_generation_report
 story: US-001
-version: 1
+version: 2
 status: DRAFT
 created_at: 2026-08-31T11:25:00Z
-updated_at: 2026-08-31T11:25:00Z
+updated_at: 2026-09-03T09:00:00Z
 produced_by: test-writer
 inputs:
   - path: docs/specifications/US-001-spec.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-api-design.md
-    version: 1
+    version: 2
   - path: docs/designs/api/US-001-openapi.yaml
-    version: 1
+    version: 2
   - path: docs/designs/database/US-001-db-design.md
-    version: 1
+    version: 2
   - path: docs/designs/database/US-001-entity-model.md
-    version: 1
+    version: 2
   - path: docs/impact-analysis/US-001-impact-analysis.md
-    version: 1
+    version: 2
   - path: docs/plans/US-001-implementation-plan.md
-    version: 1
+    version: 2
   - path: docs/reviews/plans/US-001-plan-review.md
-    version: 1
+    version: 2
   - path: docs/tests/US-001-test-strategy.md
-    version: 1
+    version: 2
   - path: docs/tests/US-001-ac-test-matrix.md
-    version: 1
-supersedes: null
+    version: 2
+supersedes: docs/evidence/US-001-test-generation-report.md
 ---
 
 # Test-Generation Report — US-001 Customer Registration
 
 ## 1. Story
 
-US-001 Customer Registration. Tests authored at `TEST_WRITING`, before
-`IMPLEMENTATION`. Red-phase evidence below.
+US-001 Customer Registration. This is the `TEST_WRITING` re-run in the
+`RECONCILIATION` v3 loop-back cascade (`specification_gap` / RC-9). The cascade's
+only substantive change is **documentation-only** (SC-4 "deny by default" =
+authentication-required by default, `anyRequest().authenticated()`, not literal
+`denyAll()` — aligned across `specification` v2 §7 SEC-1, `api_design` v2 §6/§8,
+`openapi` v2 `x-auth-posture`, `design_review` v2 D-10). No Acceptance Criterion,
+validation rule, status code, error model, schema, or constraint changed.
 
 ## 2. Environment
 
 | Item | Value |
 |---|---|
 | Build tool | Gradle 9.7.1 (wrapper) |
-| JDK (runtime) | Temurin 25; Gradle toolchain pinned to Java 21 (`build.gradle.kts`) |
-| Framework | Spring Boot 4.1.1, Spring Framework 7.0.8 |
-| Test libs | JUnit Jupiter 6.0.3, AssertJ 3.27.7, JSONPath 2.10.0, spring-security-test 7.1.1 (all via `spring-boot-starter-*-test`) |
-| DB (test) | isolated in-memory H2 `jdbc:h2:mem:us001` (profile `test`) |
-| Command | `./gradlew test --console=plain` |
+| Launcher / daemon JVM | Temurin 25; Gradle Java toolchain pinned to Java 21 (`build.gradle.kts`) |
+| Framework | Spring Boot 4.1.1 |
+| DB (test) | isolated in-memory H2 (profile `test`, `src/test/resources/application-test.yaml`) |
+| Command | `./gradlew clean test --console=plain` |
+| Result | **BUILD SUCCESSFUL** |
 
-## 3. Files created
+## 3. What this run changed
 
-### Test sources (`src/test/java/org/example/customerportal/`)
+**Workflow artifacts only** — no file under `src/` was created or modified
+(`git status --porcelain src/` is empty; last `src/` commit is `6c7d9e8`
+"Stage IMPLEMENTATION corrective pass completed").
+
+| Path | Change |
+|---|---|
+| `docs/tests/US-001-test-strategy.md` | v1 → **v2**: input refs → all-v2 chain; green-phase adjudication (§3); level table updated to the 8 classes that exist; §8 re-adjudicated (F-3 tripwire, `open_decisions` v2, M-4 all resolved). |
+| `docs/tests/US-001-ac-test-matrix.md` | v1 → **v2**: every `RED` / `DEFERRED → IMPLEMENTATION` row now `GREEN` with a concrete test method; `RegistrationRequestTest` rows added (RC-1 / REJECT-3); RC-3 concurrent-duplicate + heuristic-scope rows added. |
+| `docs/evidence/US-001-test-generation-report.md` | this file, v1 → **v2**. |
+
+### Why no `src/**` edit
+
+1. The cascade delta is documentation-only; nothing requirement-driven forces a
+   test change.
+2. `implementation_verification` v2 (PASS) and `security_review` v2 (PASS) both
+   consume `test_strategy` + `ac_test_matrix` and both rest on "no `src/**`
+   change since `640850d`". A `src/test/**` edit here would re-stale both and
+   extend the cascade for no requirement benefit.
+3. The existing suite already covers every mandatory AC and passes.
+
+If a test change had been required, `test-writer` would have returned
+`CHANGES_REQUIRED` (`changes_required_tests`) or surfaced a `BLOCKED` upstream
+conflict rather than editing silently. Neither applies.
+
+## 4. Test inventory (existing suite, `src/test/java/org/example/customerportal/`)
 
 | Path | Level | Tests | Covers |
 |---|---|---|---|
 | `registration/CustomerRegistrationApiTest.java` | web / contract (`@SpringBootTest` + `MockMvc`) | 22 | AC-001, AC-002, AC-003, AC-005, AC-006, AC-007, unknown/malformed JSON, AC-6 error body, SC-9 hygiene |
+| `validation/PasswordPolicyValidatorTest.java` | unit (parameterised) | 17 | AC-006 — byte-length boundary matrix (PD-2 / R-3), character classes, `@NotBlank` delegation, SC-9 no-echo message |
 | `persistence/CustomerSchemaTest.java` | schema (`@SpringBootTest` + `JdbcTemplate` on `INFORMATION_SCHEMA`) | 10 | AC-002 (unique), AC-003 (email length), AC-004 (`password_hash`, no plaintext column), NFR-4, BR-007, SEC-5 |
-| `security/RegistrationSecurityPostureTest.java` | security (`@SpringBootTest` + `MockMvc`) | 4 | SEC-1, SEC-7/OD-002:B, SC-4 (F-3 tripwire), SC-6/SEC-9 |
+| `service/CustomerServiceTest.java` | service unit (`MockitoExtension`, real `BCryptPasswordEncoder`) | 7 | AC-001, AC-002, AC-004, AC-006 (FR-6 re-check), RC-3 concurrent-duplicate + heuristic scope |
+| `security/RegistrationSecurityPostureTest.java` | security (`@SpringBootTest` + `MockMvc`) | 4 | SEC-1, SEC-7 / OD-002:B, SC-4 (F-3 — now passing), SC-6 / SEC-9 |
+| `persistence/CustomerPersistenceTest.java` | persistence slice (`@SpringBootTest`, `@Transactional`) | 3 | AC-004, NFR-4, BR-007 — UTC auditing, `created_at` immutability, `EnumType.STRING`, `ddl-auto=validate` agreement (R-1 / PD-6) |
+| `model/request/RegistrationRequestTest.java` | unit | 3 | AC-005 / SC-1 / SEC-3 — `toString()` password masking (RC-1 / REJECT-3) |
+| `CustomerPortalApplicationTests.java` | regression (`@SpringBootTest`, `@ActiveProfiles("test")`) | 1 | context boots with Security + JPA active (plan M-4) |
+| **Total** | | **67** | |
 
-### Test fixtures / resources
+### Fixtures
 
 | Path | Purpose |
 |---|---|
-| `src/test/resources/application-test.yaml` | profile `test`: isolated in-memory H2, `ddl-auto=validate`, `sql.init.mode=embedded`, H2 console off, `fail-on-unknown-properties=true`, `open-in-view=false` (plan C-17) |
+| `src/test/resources/application-test.yaml` | profile `test`: isolated in-memory H2, `ddl-auto=validate`, embedded SQL init, H2 console off, `fail-on-unknown-properties=true` |
 
-### Workflow artifacts
+## 5. Green-phase adjudication
 
-| Path | |
-|---|---|
-| `docs/tests/US-001-test-strategy.md` | v1 |
-| `docs/tests/US-001-ac-test-matrix.md` | v1 (authoritative AC→test map) |
-| `docs/evidence/US-001-test-generation-report.md` | this file |
+`test-writer`'s red-phase rule expects new behavior tests to fail before
+implementation. Here the implementation **already exists** — built by the earlier
+`IMPLEMENTATION` occurrence in this same `RECONCILIATION` v3 cascade and verified
+by `implementation_verification` v2 and `security_review` v2. So every behavior
+test passes. Per the Skill's "if all new behavior tests pass before
+implementation, investigate" instruction:
 
-## 4. Files modified
+- **The functionality genuinely exists** — controller, service, validator,
+  entity, `SecurityConfig`, `schema.sql` are all present in `src/main`. Not a
+  case of the tests not reaching the relevant layer.
+- **Assertions are not too weak** — the web tests assert exact status codes,
+  the `Location` pattern, exact `$.message` text, and field-error field names;
+  the service test uses a real BCrypt encoder and asserts the hash format +
+  `matches`; the schema tests read `INFORMATION_SCHEMA` for exact type / length /
+  nullability. The two `not(401)` / `not(403)` matchers in the posture test are
+  each paired with a strict-status test elsewhere (test-strategy §8) — recorded
+  as a non-blocking observation, adequate as-is.
+- **Tests do not bypass a layer** — web tests go through the full filter chain +
+  `DispatcherServlet`; persistence tests hit a real H2 datasource under
+  `ddl-auto=validate`.
 
-None. `build.gradle.kts` is **not** touched — `spring-boot-starter-validation`
-(plan M-1) is `IMPLEMENTATION`'s to add; this suite needs no Bean-Validation API
-on the classpath because it asserts at the HTTP and schema boundaries.
-`CustomerPortalApplicationTests` is **not** modified — `@ActiveProfiles("test")`
-on it is plan edit M-4, owned by `IMPLEMENTATION`.
-
-## 5. Design choice — why boundary-level tests
-
-`test-writer`'s red-phase rule rejects a failing test caused by a compile error
-or an invalid import. Before `IMPLEMENTATION` there are no production types to
-import, so every test here is written against the running HTTP API (`MockMvc`)
-or the live schema (`INFORMATION_SCHEMA`) and imports no
-`org.example.customerportal` production class. The tree compiles today and will
-keep compiling as production code lands.
-
-Unit-level tests that must import a production type — `PasswordPolicyValidatorTest`
-(plan C-T1, the byte-precise policy matrix), `CustomerServiceTest` (C-T3),
-`CustomerPersistenceTest` (C-T2) — are specified in full in the AC-test matrix
-(§1, §4 `DEFERRED → IMPLEMENTATION` rows) and handed to `IMPLEMENTATION`, whose
-plan already gates execution steps 4 and 6 on them. Every mandatory AC still has
-executable coverage now.
+Conclusion: the suite is a valid regression contract. `verdict: PASS`.
 
 ## 6. Execution evidence
 
-`./gradlew test` — **BUILD FAILED** (expected: red phase).
+`./gradlew clean test --console=plain` — **BUILD SUCCESSFUL** (13s).
 
 ```
-37 tests completed, 33 failed
+67 tests completed, 0 failed, 0 skipped
 ```
 
-| Test class | tests | passed | failed |
-|---|---|---|---|
-| `CustomerPortalApplicationTests` | 1 | 1 | 0 |
-| `registration.CustomerRegistrationApiTest` | 22 | 0 | 22 |
-| `persistence.CustomerSchemaTest` | 10 | 1 | 9 |
-| `security.RegistrationSecurityPostureTest` | 4 | 2 | 2 |
+Per-suite (from `build/test-results/test/*.xml`):
 
-### 6.1 Passing existing tests (regression)
+| Test class | tests | passed | failed | errors | skipped |
+|---|---|---|---|---|---|
+| `CustomerPortalApplicationTests` | 1 | 1 | 0 | 0 | 0 |
+| `model.request.RegistrationRequestTest` | 3 | 3 | 0 | 0 | 0 |
+| `persistence.CustomerPersistenceTest` | 3 | 3 | 0 | 0 | 0 |
+| `persistence.CustomerSchemaTest` | 10 | 10 | 0 | 0 | 0 |
+| `registration.CustomerRegistrationApiTest` | 22 | 22 | 0 | 0 | 0 |
+| `security.RegistrationSecurityPostureTest` | 4 | 4 | 0 | 0 | 0 |
+| `service.CustomerServiceTest` | 7 | 7 | 0 | 0 | 0 |
+| `validation.PasswordPolicyValidatorTest` | 17 | 17 | 0 | 0 | 0 |
+| **Total** | **67** | **67** | **0** | **0** | **0** |
 
-| Test | Result | Note |
-|---|---|---|
-| `CustomerPortalApplicationTests.contextLoads` | PASS | Context boots with Spring Security + Spring Data JPA on the classpath and the `test` profile datasource. Baseline (before this suite) also passed — no regression. |
+### 6.1 Regression
 
-### 6.2 Expected failing new tests (red — feature not implemented)
+`CustomerPortalApplicationTests.contextLoads` passes — context boots with Spring
+Security + Spring Data JPA active on the `test` profile. No regression.
 
-**`registration.CustomerRegistrationApiTest` — all 22 fail identically:**
+### 6.2 Unexpected failures
 
-```
-java.lang.AssertionError: Status expected:<201|400|409|415> but was:<403>
-```
-
-Cause: with no `SecurityConfig`, Spring Security's default filter chain enforces
-CSRF and rejects every tokenless `POST` with `403` before it reaches a handler —
-and there is no controller, DTO, validator or exception advice yet. After
-`IMPLEMENTATION` (registration path `permitAll` + CSRF-exempt per OD-002:B, plus
-the controller / validation / `@RestControllerAdvice`) these resolve to the
-asserted `201` / `400` / `409` / `415`. Failure is uniform and consistent with
-"not implemented".
-
-**`persistence.CustomerSchemaTest` — 9 fail:**
-
-```
-AssertionError: Expecting actual not to be null        (column lookups → no `customer` table)
-AssertionFailedError: expected: 1 but was: 0           (customerTableExists)
-AssertionError: 0 to be greater than or equal to 1     (emailHasAUniqueConstraint)
-BadSqlGrammarException: ... Table "CUSTOMER" not found  (duplicate-email INSERT)
-```
-
-Cause: `src/main/resources/schema.sql` and the `customer` table do not exist
-yet. After `IMPLEMENTATION` creates the hand-written schema (db-design §8.1) and
-`ddl-auto=validate` confirms the entity agrees with it, these pass.
-
-**`security.RegistrationSecurityPostureTest` — 2 fail:**
-
-| Test | Failure | Resolves when |
-|---|---|---|
-| `registrationEndpointIsReachableWithoutAuthentication` | `Response status Expected: not <403> but: was <403>` | registration path is made `permitAll` |
-| `registrationPostIsAcceptedWithoutACsrfToken` | `Response status Expected: not <403> but: was <403>` | the scoped CSRF exemption (OD-002:B) is added |
-
-### 6.3 New tests already passing at TEST_WRITING (guards / already-satisfied)
-
-| Test | Why it passes now | Still valid after IMPLEMENTATION? |
-|---|---|---|
-| `persistence.CustomerSchemaTest.noPlaintextPasswordColumnExists` | No `customer` table ⇒ no `PASSWORD` column | Yes — the implemented schema has only `password_hash` (BR-005) |
-| `security.RegistrationSecurityPostureTest.protectedRouteReturns401WhenUnauthenticated` | Default security returns `401` for all routes | Yes — `anyRequest().authenticated()` + `HttpStatusEntryPoint(401)` keeps it `401`. **Tripwire:** if `IMPLEMENTATION` uses form login this becomes `302` and fails → `SECURITY_REVIEW` arbitrates (plan-review F-3 / risk R-2) |
-| `security.RegistrationSecurityPostureTest.h2ConsoleIsNotExposed` | No H2-console servlet registered | Yes — `spring.h2.console.enabled=false` in every profile (SC-6) |
-
-None of these three is a weak assertion masking a missing mandatory behavior:
-each states a property that must remain true, and every AC they touch also has a
-`RED` row.
-
-### 6.4 Unexpected failures
-
-None. Every failure is a status/assertion mismatch from missing production
-behavior or a missing schema object. No compile error, no invalid import, no
-context-load failure, no bad fixture, no missing dependency.
+None. BUILD SUCCESSFUL; no compile error, no invalid import, no context-load
+failure, no bad fixture, no missing dependency.
 
 ## 7. Untested / deferred Acceptance Criteria
 
-None untested. Deferred-to-`IMPLEMENTATION` depth (owned by plan skeletons,
-fully specified in the AC-test matrix):
+None. Every v1 `DEFERRED → IMPLEMENTATION` row is now realized as a concrete
+`GREEN` test method (see `ac_test_matrix` v2 §1, §4):
 
-| Deferred test | AC | Owner |
-|---|---|---|
-| `validation.PasswordPolicyValidatorTest` — byte-length boundary matrix + class rules + safe message | AC-006 | plan C-T1 (execution step 6) |
-| `service.CustomerServiceTest` — normalization, service-layer re-check (FR-6), BCrypt verify, duplicate guard | AC-001, AC-002, AC-004 | plan C-T3 (execution step 8) |
-| `persistence.CustomerPersistenceTest` — `created_at` not updatable, UTC offset, `EnumType.STRING`, `ddl-auto=validate` agreement | AC-004, NFR-4, BR-007 | plan C-T2 (execution step 4) |
+| v1 deferred item | Now realized as |
+|---|---|
+| `PasswordPolicyValidatorTest` byte-length matrix + class rules + safe message | `validation.PasswordPolicyValidatorTest` (17 tests) |
+| `CustomerServiceTest` normalization, FR-6 re-check, BCrypt verify, duplicate guard | `service.CustomerServiceTest` (7 tests) |
+| `CustomerPersistenceTest` `created_at` immutability, UTC offset, `EnumType.STRING`, `validate` agreement | `persistence.CustomerPersistenceTest` (3 tests) |
 
 ## 8. Open Decisions
 
-None open. OD-001..OD-006 are resolved (OD-001:A, OD-002:B, OD-003:A, OD-004:A,
-OD-005:A, OD-006:A — `history.jsonl` at `HUMAN_SPEC_APPROVAL`). Non-blocking
-documentation lag: `docs/decisions/US-001-open-decisions.md` v1 still marks them
-`OPEN`; owned by `us-clarifier`.
+None open. OD-001..OD-006 are RESOLVED (OD-001:A, OD-002:B, OD-003:A, OD-004:A,
+OD-005:A, OD-006:A) and recorded in `docs/decisions/US-001-open-decisions.md` v2
+/ APPROVED ("No `OPEN` decisions remain"). The v1 "still marks them `OPEN`"
+documentation-lag note is closed.
 
-## 9. Overall result
+## 9. Non-blocking findings
+
+1. `security.RegistrationSecurityPostureTest` —
+   `registrationEndpointIsReachableWithoutAuthentication` and
+   `registrationPostIsAcceptedWithoutACsrfToken` assert `not(401)` / `not(403)`
+   rather than a strict status. Investigated: each is paired with a strict test
+   (`validRegistrationReturns201WithLocationAndCustomerBody`,
+   `protectedRouteReturns401WhenUnauthenticated`); the posture test deliberately
+   isolates the "auth/CSRF does not block this path" property. Adequate as-is;
+   no change made (a `src/test/**` edit would re-stale
+   `implementation_verification` v2 / `security_review` v2).
+2. `CustomerPersistenceTest` uses `@SpringBootTest` + `@Transactional` rather
+   than the plan's `@DataJpaTest` skeleton (C-T2). Deviation already recorded in
+   the implementation report; it gives stronger evidence (real datasource + SQL
+   init + auditing config) and does not weaken any assertion.
+
+## 10. Overall result
 
 `verdict: PASS`. The executable suite covers every mandatory Acceptance
-Criterion, compiles, runs, and fails **only** for missing production behavior
-(red phase verified). The regression smoke test still passes. Three new tests
-pass now as deliberate guards. `test-strategy` and `ac-test-matrix` exist with
-valid front matter. No blocking Open Decisions.
+Criterion at one or more levels, compiles, and passes (67 / 0 / 0). The
+regression smoke test passes. `test_strategy` and `ac_test_matrix` are refreshed
+to v2 with valid front matter; the `ac_test_matrix` half of the prior staleness
+waiver is closed. No `src/**` change. No blocking Open Decisions.
 
-Next stage: `IMPLEMENTATION` (`springboot-implementor`).
+Next stage: `IMPLEMENTATION` (`springboot-implementor`) — which, given the code
+already exists and passes verification, is expected to be a no-op / confirmation
+pass in this cascade.
