@@ -4,34 +4,26 @@
 version: 1
 story: US-001
 workflow: story-delivery
-current_stage: IMPLEMENTATION
-previous_stage: TEST_WRITING
-last_completed_stage: TEST_WRITING
+current_stage: RECONCILIATION
+previous_stage: SECURITY_REVIEW
+last_completed_stage: SECURITY_REVIEW
 status: IN_PROGRESS
 attempt: 1
-last_invoked_skill: test-writer
+last_invoked_skill: security-reviewer
 last_result:
   verdict: PASS
-  stage: TEST_WRITING
-  recorded_at: 2026-09-03T09:00:00Z
+  stage: SECURITY_REVIEW
+  recorded_at: 2026-10-14T15:08:00Z
 last_artifacts:
-  - type: test_strategy
-    path: docs/tests/US-001-test-strategy.md
-    version: 2
-  - type: ac_test_matrix
-    path: docs/tests/US-001-ac-test-matrix.md
-    version: 2
-  - type: test_generation_report
-    path: docs/evidence/US-001-test-generation-report.md
-    version: 2
+  - type: security_review
+    path: docs/reviews/security/US-001-security-review.md
+    version: 3
 pending_human_gate: null
 blocking_issues: []
 non_blocking_findings:
-  - "TEST_WRITING occurrence 1 (as a stage event) PASS 2026-09-03. test-writer superseded test_strategy v1->v2, ac_test_matrix v1->v2, test_generation_report v1->v2; input refs refreshed to the all-v2 artifact chain (specification v2, api_design v2, openapi v2, database_design v2, entity_model v2, impact_analysis v2, implementation_plan v2, plan_review v2). CLOSES the ac_test_matrix half of the prior staleness waiver (the implementation_plan half was closed at IMPLEMENTATION_PLANNING occ.2). NO src/** change made by this stage (git status --porcelain src/ empty; last src commit 6c7d9e8) — preserves implementation_verification v2 + security_review v2 currency ('no src/** change since 640850d')."
-  - "TEST_WRITING green-phase adjudication: the feature is already implemented (built by the earlier IMPLEMENTATION occurrence in this RECONCILIATION v3 cascade). ./gradlew clean test -> BUILD SUCCESSFUL, 67 tests / 0 failed / 0 errors / 0 skipped across 8 classes. Every v1 RED / DEFERRED->IMPLEMENTATION row is now GREEN with a concrete test method; RegistrationRequestTest (RC-1/REJECT-3 toString masking) and the RC-3 concurrent-duplicate + heuristic-scope service rows are enumerated in ac_test_matrix v2 (were untracked in v1). test-writer made no src/test edit because the cascade delta is documentation-only and an edit would re-stale the two downstream reviews."
-  - "TEST_WRITING non-blocking findings: (1) RegistrationSecurityPostureTest uses not(401)/not(403) hamcrest matchers on 2 scenarios - investigated, adequate: each is paired with a strict-status test elsewhere (validRegistrationReturns201..., protectedRouteReturns401...); no mandatory AC rests on a not(...) matcher. (2) CustomerPersistenceTest uses @SpringBootTest+@Transactional rather than plan skeleton C-T2's @DataJpaTest - stronger evidence, deviation already in the implementation report. Neither is a src-edit trigger."
-  - "TEST_WRITING re-adjudicated v1 test_strategy sec 8: plan-review F-3 (401 vs 302 tripwire) RESOLVED - protectedRouteReturns401WhenUnauthenticated passes; open_decisions 'still OPEN' note DEAD (v2/APPROVED); plan edit M-4 LANDED (@ActiveProfiles(\"test\") on CustomerPortalApplicationTests). plan-review v2 F-2 (C-14 401 posture) is thereby empirically satisfied by the green suite."
-  - "CASCADE STATE: IMPLEMENTATION next (occurrence 3; occ.1 2026-08-31, occ.2 corrective pass 2026-09-02 commit 6c7d9e8). Expected to be a no-op/confirmation pass - production code already exists and passes implementation_verification v2 + security_review v2, and the cascade delta is doc-only (RC-9 SC-4 wording). Remaining after IMPLEMENTATION: IMPLEMENTATION_VERIFICATION, SECURITY_REVIEW, RECONCILIATION, HUMAN_PR_APPROVAL, PR_PREPARATION, READY_FOR_PR, COMPLETED. workflow-state.attempt reset to 1 per state-schema rule 4 (forward PASS move); compute IMPLEMENTATION's occurrence from its own history, not by incrementing this 1."
+  - "SECURITY_REVIEW occurrence 3: PASS. security_review superseded v2->v3 against the all-v2 chain + implementation_verification v3; src/** unchanged since 6c7d9e8, build/test evidence reused (67/67). 0 Critical / 0 Major / 3 Minor (SR-2, SR-3 carried; SR-6 new) / 2 Informational (SR-4, SR-5). SR-1 (RC-9 doc half) CLOSED - SC-4 note present in spec v2 + api_design v2. SR-6: untracked stray src/main/docs/hooks/tool-usage.jsonl (hook log-tool.py uses a relative path; created when shell cwd was src/main; metadata-only) - HUMAN/harness must delete it and fix the hook; RECONCILIATION/PR_PREPARATION must exclude src/main/docs/ from candidate files. Next: RECONCILIATION (reconciliation-reviewer)."
+  - "IMPLEMENTATION_VERIFICATION occurrence 3: PASS. implementation_verification superseded v2->v3 against the all-v2 input chain + implementation_report v3. Independent ./gradlew clean test -> BUILD SUCCESSFUL, 67/67 tests, 0 failed/errors/skipped, 8 suites; 7/7 ACs VERIFIED; src/** and build.gradle.kts unchanged since 6c7d9e8. 0 Critical / 0 Major / 3 Minor (MF-a design-artifact DRAFT status waiver, MF-b OpenAPI example wording, MF-c spec-review presentation residue; all non-blocking). Next: SECURITY_REVIEW (security-reviewer)."
+  - "IMPLEMENTATION occurrence 3 (confirmation pass, as predicted at the TEST_WRITING->IMPLEMENTATION transition): RECONCILIATION v3 specification_gap cascade's only content delta across specification/api_design/database_design/entity_model/design_review/impact_analysis/implementation_plan/test_strategy/ac_test_matrix v1->v2 is the SC-4 wording clarification ('deny-by-default' -> 'authentication-required by default'), already reflected in SecurityConfig at occurrence 2 (RC-9). NO src/** change made this occurrence; git status --porcelain empty before and after. implementation_report superseded v2->v3: input refs refreshed to the all-v2 chain; ./gradlew clean test re-run -> BUILD SUCCESSFUL, 67/67 tests, 0 failed/errors/skipped, 8 suites (unchanged from TEST_WRITING). CLOSES the implementation_report half of the staleness waiver tracked at TEST_WRITING. Next: IMPLEMENTATION_VERIFICATION (implementation-verifier) against the v2 input chain + implementation_report v3."
   - "INVARIANT WAIVER (continue-flow step 4), carried: specification v2 + api_design v2 + database_design v2 + entity_model v2 carry front-matter status DRAFT though each has a recorded PASS review + (spec) HUMAN_APPROVED occ.2 in history.jsonl. Tracked as design_review v2 D-11 / plan_review v2 F-6; owners spec-writer / openapi-designer / db-designer; no downstream impact. impact_analysis v2 DRAFT is compliant (no review stage follows IMPACT_ANALYSIS)."
   - "PLAN_REVIEW v2 findings (all Minor/advisory): F-1 execution-order per-step criteria; F-2 C-14 401-vs-302 (now empirically satisfied by the green TEST_WRITING suite); F-3 PD-1 one HttpMessageNotReadableException branch vs two OpenAPI example messages (shape preserved); F-4 spring-boot-starter-validation now present in build.gradle.kts (confirmed at HUMAN_PLAN_APPROVAL occ.2)."
   - "SPEC_REVIEW v2 findings F-1..F-7 (all Minor/advisory) still open as presentation residue in specification v2: F-1 AC-007 'AC-2' annotation; F-2 sec 6.3 unknown-JSON-field deferral wording; F-3 FR-2 bundles 415 + body-shape; F-4 PC-9 VARCHAR(60) cited early; F-5 sec 6.2 password max 72 'characters' vs 72 bytes (plan PD-2 / tests use bytes); F-6 entity 'Customer' vs glossary 'Account'; F-7 residual 'draft:' labelling next to resolved OD references."
@@ -39,6 +31,6 @@ non_blocking_findings:
   - "OPEN non-loop-back items (not blockers): D-2 hook output-path fix for the removed tool-usage.jsonl (hook config, not a PR file); RC-2/SR-2 optional OpenAPI illustrative-example alignment; RC-3-residual/SR-3 optional constraint-name-only hardening; SR-4/SR-5 future H2 credential hardening."
   - "Cascade v2 artifacts (spec/api/db/design-review/impact/plan/plan-review/tests) are uncommitted as of this stage - latest commit is 'SPEC_REVIEW checkpoint'. Harness checkpointing, not a workflow concern."
 started_at: 2026-08-30T23:50:01Z
-updated_at: 2026-09-03T09:00:00Z
+updated_at: 2026-10-14T15:08:00Z
 completed_at: null
 archived_at: null
