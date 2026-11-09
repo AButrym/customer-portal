@@ -133,3 +133,17 @@ One JSON object per line, append-only. Owned by `story-orchestrator`
 lifecycle-event markers: `ACTIVATED` (Story activation, `from_stage: BACKLOG_SYNC`
 or `null`), `HUMAN_APPROVED` / `HUMAN_REJECTED` (a human gate, `skill: null`),
 `ARCHIVED` (archive mode).
+
+For a `CLARIFICATION` event the orchestrator also records the closed decisions
+so the history shows when they were resolved, not just that the stage passed:
+
+```json
+{ "...": "...", "from_stage": "CLARIFICATION", "to_stage": "SPECIFICATION",
+  "skill": "us-clarifier", "verdict": "PASS",
+  "decisions_resolved": {"OD-001": "A", "OD-002": "B"} }
+```
+
+`decisions_resolved` maps each Open Decision id to the chosen option as recorded
+in the `open_decisions` artifact. A `PASS` from `CLARIFICATION` with any entry
+not `RESOLVED` is an invariant violation: the orchestrator records `BLOCKED`
+instead.

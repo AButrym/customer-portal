@@ -44,8 +44,13 @@ The Skill is a quality gate. It does not edit the Specification.
 - **Security**: authentication, authorization, and credential-handling
   requirements are stated and cite `security-conventions.md` or an Open Decision
   — none invented.
-- **Open Decisions**: every Open Decision from `open_decisions` appears in the
-  Specification with its impact described.
+- **Open Decisions**: every entry in `open_decisions` is `RESOLVED` or
+  `SUPERSEDED` (an `OPEN` entry is a `Critical` finding → `loop_back_stage:
+  CLARIFICATION`, key `unresolved_decision`). Every resolved decision appears in
+  the Specification's Resolved Decisions section **and** is reflected in the
+  affected requirements exactly as the user decided. Search the Specification
+  for leftovers: "draft", "pending", "TBD", "per OD-" conditional wording, and
+  options the user did not choose — each is a `Major` finding.
 - **Testability**: each Acceptance Criterion is expressed in observable terms.
 
 # Findings
@@ -73,7 +78,7 @@ result:
   artifacts:
     - docs/reviews/specifications/<StoryId>-spec-review.md
   next_stage: HUMAN_SPEC_APPROVAL
-  loop_back_stage: null            # or SPECIFICATION
+  loop_back_stage: null            # or SPECIFICATION | CLARIFICATION
   blocking_issues: []
   non_blocking_findings: []
 ```
@@ -86,7 +91,8 @@ result:
   Decision prevents meaningful review.
 
 Note: a `PASS` here is **not** human approval. The orchestrator advances to
-`HUMAN_SPEC_APPROVAL`, where a person resolves the Open Decisions and approves.
+`HUMAN_SPEC_APPROVAL`, where a person approves a Specification whose Open
+Decisions were all resolved earlier, during CLARIFICATION.
 
 # Prohibited
 

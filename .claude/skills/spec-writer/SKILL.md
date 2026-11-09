@@ -29,9 +29,14 @@ primary source of truth for design, planning, testing, and implementation.
 # Preconditions
 
 - `clarification_report` and `open_decisions` exist (`CLARIFICATION` completed).
-- If unresolved Open Decisions exist: do **not** guess answers. Represent each in
-  the Specification's "Open Decisions" section and describe its impact on the
-  affected requirements. The decisions are resolved at `HUMAN_SPEC_APPROVAL`.
+- Every entry in `open_decisions` is `RESOLVED` or `SUPERSEDED`
+  (`artifact-lifecycle.md` §4). If any entry is `OPEN`: write nothing, return
+  `CHANGES_REQUIRED` with `loop_back_stage: CLARIFICATION` (key
+  `unresolved_decision`) so the user is interviewed. Never guess, never draft
+  against `recommended` values.
+- If drafting reveals a new undecided question, do not assume an answer and do
+  not edit `open_decisions` (owned by `us-clarifier`): stop and return the same
+  `CHANGES_REQUIRED` with the question in `blocking_issues`.
 
 # Specification structure
 
@@ -51,7 +56,9 @@ specification`), then:
 - Error Handling
 - Non-Functional Requirements
 - Out of Scope
-- Open Decisions (with impact)
+- Resolved Decisions (each OD id, the user's resolution, and the requirements it
+  shaped). State requirements in their decided form in the body; no "draft",
+  "pending decision", or "per OD-xxx if…" conditional wording.
 - Traceability (Acceptance Criterion → functional requirement / validation rule)
 
 # Output
@@ -64,27 +71,29 @@ Return exactly this; the story-orchestrator records the transition:
 
 ```yaml
 result:
-  verdict: PASS | BLOCKED
+  verdict: PASS | CHANGES_REQUIRED | BLOCKED
   stage: SPECIFICATION
   story: <StoryId>
   artifact_status: DRAFT
   artifacts:
     - docs/specifications/<StoryId>-spec.md
   next_stage: SPEC_REVIEW
-  loop_back_stage: null
+  loop_back_stage: null            # or CLARIFICATION (key: unresolved_decision)
   blocking_issues: []
   non_blocking_findings: []
 ```
 
 - `PASS` — all Acceptance Criteria represented; validation, security, error
-  handling, and traceability sections complete; Open Decisions listed with
-  impact.
-- `BLOCKED` — `clarification_report` missing, or an Open Decision makes a
-  mandatory requirement impossible to state even as a documented gap.
+  handling, and traceability sections complete; every requirement stated in its
+  decided form; Resolved Decisions section lists each OD with its resolution.
+- `CHANGES_REQUIRED` — an Open Decision is `OPEN` or a new undecided question
+  surfaced; `loop_back_stage: CLARIFICATION`.
+- `BLOCKED` — `clarification_report` missing or stale.
 
 # Prohibited
 
 - Do not invent security or business behavior.
-- Do not resolve Open Decisions.
+- Do not resolve or assume answers to Open Decisions; do not draft against
+  `recommended` options.
 - Do not create designs, tests, or code.
 - Do not update workflow state.

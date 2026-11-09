@@ -35,6 +35,27 @@ supersedes: null                            # or the relative path of the prior 
 | `inputs[]` | One entry per consumed artifact, with the version that was read. Enables stale-input detection. |
 | `supersedes` | `null` unless this revision replaces an earlier one; then the earlier file's path. The earlier file's `status` becomes `SUPERSEDED`. |
 
+## `open_decisions` entry schema
+
+The `open_decisions` artifact uses the front-matter block above, then one entry
+per decision. Entry status vocabulary: `artifact-lifecycle.md` §4.
+
+```yaml
+id: OD-001
+question: <what must be decided>
+context: <why it is undecided; cited sources>
+affects: [SPECIFICATION, API_DESIGN, ...]
+status: OPEN | RESOLVED | SUPERSEDED
+options: [A, B, ...]               # with short descriptions, if known
+recommended: <option or null>      # non-binding
+resolution: null                   # RESOLVED only: chosen option + any free-text clarification, verbatim from the user
+resolved_by: null                  # RESOLVED only: actor string
+resolved_at: null                  # RESOLVED only: ISO-8601, runtime
+```
+
+When all entries are `RESOLVED`, the artifact `status` stays `DRAFT` until the
+normal review path approves it; entry status and artifact status are independent.
+
 ## Staleness contract
 
 - A reviewer that consumes artifact X at `version: N` records `{path: X, version: N}` in its own `inputs`.

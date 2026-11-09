@@ -19,6 +19,9 @@ Requirements:
 - confirm every artifact in the gate's `required_artifacts` exists, is current
   (not SUPERSEDED / ARCHIVED), and its recorded automated verdict is PASS with
   no blocking findings; if not, refuse and report what is missing;
+- for HUMAN_SPEC_APPROVAL, also confirm every entry in the open_decisions
+  artifact is RESOLVED or SUPERSEDED; if any is OPEN, refuse and report the ids.
+  The gate approves a Specification; it does not resolve Open Decisions;
 - set pending_human_gate.status = APPROVED, decided_at (runtime), decided_by;
   store the comment;
 - append a docs/workflow/history.jsonl event with verdict "HUMAN_APPROVED";

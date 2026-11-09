@@ -99,6 +99,9 @@ stages:
     inputs: [story]
     outputs: [clarification_report, open_decisions]
     next: SPECIFICATION
+    # PASS requires every Open Decision RESOLVED by an explicit user answer
+    # collected in an interview (artifact-lifecycle.md section 4). Otherwise
+    # BLOCKED. No decision is deferred to a later stage or to a human gate.
 
   SPECIFICATION:
     type: automated_skill
@@ -106,6 +109,8 @@ stages:
     inputs: [story, clarification_report, open_decisions]
     outputs: [specification]
     next: SPEC_REVIEW
+    loop_back:
+      unresolved_decision: CLARIFICATION
 
   SPEC_REVIEW:
     type: automated_skill
@@ -115,6 +120,7 @@ stages:
     next: HUMAN_SPEC_APPROVAL
     loop_back:
       changes_required: SPECIFICATION
+      unresolved_decision: CLARIFICATION
 
   HUMAN_SPEC_APPROVAL:
     type: human_gate

@@ -90,7 +90,11 @@ human gate.
 
 # Open Decisions Policy
 
-Open Decisions are blockers. If an approved artifact contains `TODO`, `TBD`,
+Open Decisions are blockers. They are closed during `CLARIFICATION` by
+interviewing the user: `us-clarifier` returns `PASS` only when every Open
+Decision is `RESOLVED` by an explicit user answer (`artifact-lifecycle.md` §4);
+otherwise `BLOCKED`. Recommendations are never accepted on the user's behalf and
+no decision is deferred to a later stage or human gate. If an approved artifact contains `TODO`, `TBD`,
 `FIXME`, `???`, or an unresolved Open Decision that affects the next stage, do
 not proceed. Instead: document the gap, request clarification, update the
 Specification. Clarification is always preferred over guessing.

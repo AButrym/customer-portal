@@ -176,8 +176,14 @@ Before invoking any automated stage Skill, verify:
   exists and whose `status` is `APPROVED` (for artifacts gated by a review) or
   `DRAFT`/`APPROVED` (for un-reviewed inputs), and is not `SUPERSEDED`/`ARCHIVED`;
 - no downstream input records a superseded upstream version (staleness);
-- no unresolved **blocking** Open Decision in `open_decisions` affects the next
-  stage;
+- from `SPECIFICATION` onward, every entry in `open_decisions` has `status`
+  `RESOLVED` or `SUPERSEDED` (`artifact-lifecycle.md` §4) — checked by status,
+  not by free-text markers;
+- a `CLARIFICATION` result of `PASS` is accepted only if the envelope carries
+  `decisions_resolved` covering every entry and none is `OPEN`; otherwise record
+  `BLOCKED`. Put `decisions_resolved` in the history event (`state-schema.md`).
+  `CLARIFICATION` is interactive (user interview) and must run in the main
+  session, never as a background/auto-mode step;
 - no blocking `TODO`/`TBD`/`FIXME`/`???`/`unresolved` marker in an `APPROVED`
   input artifact;
 - the routed Skill exists in the environment and matches

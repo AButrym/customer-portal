@@ -79,3 +79,31 @@ Stored in `workflow-state.yaml` (`status:` and inside `pending_human_gate`).
 | `ARCHIVED` | Reached stage `ARCHIVED` via archive mode. |
 
 `pending_human_gate.status` sub-enum: `PENDING`, `APPROVED`, `REJECTED`.
+
+---
+
+## 4. Open Decision status
+
+Applies to each entry inside the `open_decisions` artifact (per-entry `status:`).
+This is separate from the artifact lifecycle status in §1.
+
+| Value | Meaning |
+|---|---|
+| `OPEN` | Question raised; no human answer yet. Blocks every stage from `SPECIFICATION` onward. |
+| `RESOLVED` | A human answered it during the CLARIFICATION interview. Entry carries `resolution`, `resolved_by`, `resolved_at`. |
+| `SUPERSEDED` | Replaced by a later decision (`superseded_by: OD-xxx`). |
+
+Rules:
+- Only `us-clarifier` sets an entry to `RESOLVED`, and only from an explicit
+  human answer collected in the interview. Never from a `recommended` value, a
+  default, or an inference. A human may pick the recommended option, but the
+  choice must be theirs.
+- `CLARIFICATION` returns `PASS` only when **no** entry is `OPEN`. There is no
+  deferral: every Open Decision is closed before `SPECIFICATION` starts.
+- "Unresolved Open Decision" everywhere in the harness means an entry whose
+  `status` is not `RESOLVED` / `SUPERSEDED`. Skills check the status field, not
+  free-text markers.
+- A decision discovered after CLARIFICATION (by any later stage) is not
+  resolved by that stage. The stage returns `BLOCKED` (or `CHANGES_REQUIRED`
+  with a loop-back to `CLARIFICATION` where its `loop_back` map allows) so the
+  user is interviewed.
