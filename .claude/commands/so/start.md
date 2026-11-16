@@ -17,5 +17,8 @@ Requirements:
   per docs/workflow/state-schema.md;
 - set the Story's catalog state to IN_PROGRESS in docs/catalog/stories.yaml;
 - append an activation event to docs/workflow/history.jsonl;
-- do not start stage execution automatically;
-- finish with the Start Result and recommend /so:next.
+- create the story branch feature/{story_id}-{slug} from main per
+  docs/workflow/git-policy.yaml (BLOCKED if not on main with a clean tree) and
+  commit the activation as the first checkpoint;
+- do not start stage execution automatically (no auto-run);
+- finish with the Start Result and recommend /so:run.

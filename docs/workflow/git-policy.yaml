@@ -1,0 +1,72 @@
+# =============================================================================
+# CANONICAL GIT POLICY FOR STORY DELIVERY
+# =============================================================================
+# Authoritative for: story branch naming, workflow checkpoint commits, what a
+# checkpoint may stage, and what is never done automatically.
+# Read by story-orchestrator (start / continue / run / approve / reject).
+# Artifact locations are registry KEYS from docs/workflow/artifact-paths.yaml;
+# only code/config globs (not workflow artifacts) are written as paths here.
+# =============================================================================
+
+version: 1
+
+default_branch: main
+
+story_branch:
+  pattern: "feature/{story_id}-{slug}"     # e.g. feature/US-001-register-customer
+  # {story_id} and {slug} come from the Story front matter / story registry path.
+  created_by: story-orchestrator           # in start mode only
+  base: main
+  # start mode: on main + clean tree  -> create from main and switch
+  #             already on the pattern branch for this story -> continue
+  #             anything else (other branch, dirty tree)      -> BLOCKED
+
+# Files that never count as "unexpected changes" and are never staged.
+ignored_paths:
+  - .mcp.json
+  - .claude/settings.local.json
+  - docs/hooks/tool-usage.jsonl
+
+checkpoint:
+  # One local commit per recorded transition that changed files. Applies to
+  # PASS, NOT_APPLICABLE, CHANGES_REQUIRED, HUMAN_APPROVED, HUMAN_REJECTED and
+  # ACTIVATED. A BLOCKED transition, or a transition with no file changes in
+  # the allowlist, produces NO commit.
+  message: "chore({story_id}): {from_stage} -> {to_stage} [{verdict}] attempt {attempt}"
+  body: >
+    Optional. Skill name and produced artifact paths. Max 5 lines. The
+    reasoning stays in the artifacts, not in the commit.
+  stage_only_allowlist: true               # never `git add -A` / `git add .`
+  allowlist:
+    always: [workflow_state, workflow_history, story_catalog]   # registry keys
+    from_stage_outputs: true               # stages.<from>.outputs resolved via registry
+    from_gate_required_artifacts: true     # for HUMAN_* decisions (status promotion)
+    code_stages:                           # extra globs, only while that stage ran
+      TEST_WRITING: ["src/test/**"]
+      IMPLEMENTATION: ["src/main/**", "src/test/**", "build.gradle.kts", "settings.gradle.kts"]
+  unexpected_changes: BLOCK                # modified/untracked file outside
+                                           # allowlist + ignored_paths -> do not
+                                           # commit, status BLOCKED, list files
+  forbidden:
+    - push
+    - "--no-verify"
+    - "reset --hard"
+    - "commit --amend"                     # history of checkpoints is append-only
+    - force operations
+    - create / merge Pull Request
+
+human_owned:
+  - push
+  - create_pull_request
+  - merge_pull_request
+  - rebase_story_branches_after_harness_merge
+
+harness_maintenance:
+  branch_pattern: "chore/{slug}"           # e.g. chore/harness-git-flow
+  base: main
+  rule: >
+    Changes to the harness (docs/workflow/**, .claude/**, AGENTS.md, CLAUDE.md,
+    docs/architecture/**) are never made on a story branch. They are made on a
+    chore/* branch cut from main and merged into main by a human. Story
+    branches are then rebased onto the updated main by a human. The
+    orchestrator never rebases.

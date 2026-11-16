@@ -62,7 +62,8 @@ Per SKILL.md "The Stage Result Envelope":
 
 ### 8. Record the transition
 Update `workflow-state.yaml` per `state-schema.md`. Append one `history.jsonl`
-event. Stop.
+event. Make the checkpoint commit (`git-checkpoint.md`; skipped on `BLOCKED` or
+when no allowlisted file changed). Stop.
 
 ## Continue Result
 

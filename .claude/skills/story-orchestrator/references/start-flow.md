@@ -16,7 +16,8 @@ Story id, e.g. `/so:start US-001`.
 - the Story's catalog `state` in `docs/catalog/stories.yaml` is `READY` or
   `BACKLOG` (not `IN_PROGRESS` for a different active flow, not `COMPLETED`/`ARCHIVED`);
 - no conflicting workflow lock;
-- current Git branch and working tree are known.
+- current Git branch and working tree are known (the tree must be clean apart
+  from `git-policy.yaml` `ignored_paths`).
 
 If another Story is active: do not replace it; require explicit human resolution.
 
@@ -52,11 +53,19 @@ Recommended initial stage: `CLARIFICATION`. Never initialize at `IMPLEMENTATION`
 
 ## Branch policy
 
-Follow `AGENTS.md` Git policy. If a Story branch is required but missing, report
-it; do not create or switch branches unless permissions and an explicit request
-allow it.
+Follow `docs/workflow/git-policy.yaml`. Branch = `feature/{story_id}-{slug}`.
+
+- on `main`, clean tree -> `git switch -c <branch> main`, before writing any
+  state file;
+- already on that branch -> continue;
+- any other branch or a dirty tree -> `BLOCKED`; report; do not switch.
+
+The activation (state files, catalog, `ACTIVATED` history event) is then
+committed as the first checkpoint (`git-checkpoint.md`). `/so:start` never
+auto-runs stages.
 
 ## Start Result
 
-Return: activated Story; source (Issue if any); initial stage; branch; detected
-blockers; recommended next command `/so:next`.
+Return: activated Story; source (Issue if any); initial stage; branch created;
+checkpoint sha; detected blockers; recommended next command `/so:run` (or
+`/so:next` for single-step).

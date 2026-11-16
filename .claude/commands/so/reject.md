@@ -20,6 +20,8 @@ Requirements:
 - append a docs/workflow/history.jsonl event with verdict "HUMAN_REJECTED";
 - route current_stage to the gate's `on_reject` target; clear
   pending_human_gate; set workflow status to IN_PROGRESS;
-- do not invoke any stage Skill;
+- make the checkpoint commit (references/git-checkpoint.md);
+- then auto-resume run mode (references/run-flow.md) at the on_reject stage;
+  the gate itself invokes no Skill;
 - finish with the Orchestration Result, including the loop-back target and the
   recommended next command.

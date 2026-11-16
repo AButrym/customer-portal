@@ -60,3 +60,12 @@ only name a loop-back key that exists there.
 `CLARIFY`, `SPEC_WRITE`, `DESIGN`, `PLANNING`, `TESTING`, `VERIFICATION`,
 `IMPLEMENTATION_VERIFY`, `HUMAN_REVIEW`, `PULL_REQUEST`, `DONE` are **retired**.
 See `stage-map.yaml` `retired_identifiers` for the replacement mapping.
+
+
+## Execution modes and git (non-normative)
+
+`/so:next` runs one stage. `/so:run` chains stages, each in a fresh-context
+subagent, and stops at human gates, blockers, the interactive CLARIFICATION
+stage, or after 3 loop-backs into one stage. Every transition that changes
+files is checkpoint-committed on `feature/{story_id}-{slug}`. Normative rules:
+`docs/workflow/git-policy.yaml`, `stage-map.yaml`, `AGENTS.md`.

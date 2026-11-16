@@ -20,4 +20,5 @@ Requirements:
 - record the transition in docs/workflow/workflow-state.yaml and append
   docs/workflow/history.jsonl;
 - finish with the Orchestration Result;
-- do not recursively continue to another stage.
+- do not recursively continue to another stage (use /so:run for chained stages);
+- make the checkpoint commit per docs/workflow/git-policy.yaml when files changed.

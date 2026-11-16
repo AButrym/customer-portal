@@ -5,9 +5,10 @@ description: >
   Reads workflow state, validates stage invariants, selects exactly one next
   workflow Skill, evaluates its result envelope, records the state transition,
   and stops at every human gate. Supports start, continue, status, and archive
-  modes. Use when starting, resuming, inspecting, or archiving a Story delivery
+  modes plus `run` (chained stages in fresh-context subagents until a human
+  gate). Use when starting, resuming, inspecting, or archiving a Story delivery
   flow.
-argument-hint: <start|continue|status|archive> [StoryId]
+argument-hint: <start|continue|run|status|archive> [StoryId]
 ---
 
 # Purpose
@@ -40,6 +41,7 @@ It routes to the responsible Skill and records the outcome.
 | Status vocabularies | `docs/workflow/artifact-lifecycle.md` | interpret verdicts, artifact status, workflow status |
 | Workflow-state / active-story schema | `docs/workflow/state-schema.md` | shape of the two state files + `history.jsonl` |
 | Artifact front matter | `docs/workflow/artifact-schema.md` | staleness / version checks |
+| Git policy (story branch, checkpoint commits) | `docs/workflow/git-policy.yaml` | branch name, commit format, staging allowlist |
 | Project rules | `AGENTS.md` | stable behavioral constraints |
 
 This Skill MUST NOT contain its own stage list, its own stage→skill map, or its
@@ -61,15 +63,23 @@ Mutable state:
 
 - `start` — activate one eligible Story and initialize state. Load `references/start-flow.md`.
 - `continue` (default; also invoked as `/so:next`) — advance by at most one stage. Load `references/continue-flow.md`.
+- `run` (also `/so:run`) — chain stages, each in a fresh-context `stage-runner`
+  subagent, until a human gate / blocker. Load `references/run-flow.md` and
+  `references/git-checkpoint.md`.
 - `status` — read-only report. Load `references/status-flow.md`.
 - `archive` — consolidate a COMPLETED Story. Load `references/archive-flow.md`.
 
-Load only the reference file for the requested mode. If no mode is given, use
+Load only the reference file(s) for the requested mode (`start`, `continue`,
+`run`, `approve`, `reject` also load `references/git-checkpoint.md`). If no mode is given, use
 `continue`. Never infer `archive`; it always requires an explicit user request.
 
 ---
 
 # Single-Step Rule
+
+This rule governs `continue` / `/so:next`. `run` mode is the only sanctioned
+multi-stage mode and repeats this same single-step algorithm per stage under
+the extra stop conditions in `references/run-flow.md`.
 
 One `continue` invocation performs **at most one** stage transition:
 
@@ -80,8 +90,8 @@ One `continue` invocation performs **at most one** stage transition:
 5. record exactly one transition (or hold);
 6. stop with a concise Orchestration Result.
 
-Do not run multiple stage Skills, do not recurse, do not run the workflow to
-completion in one call.
+In `continue` mode do not run multiple stage Skills, do not recurse, do not run
+the workflow to completion in one call.
 
 ---
 
@@ -155,10 +165,13 @@ On `/so:approve`: set `pending_human_gate.status: APPROVED`, append a
 `history.jsonl` event (`skill: null`, `verdict: "HUMAN_APPROVED"`), advance
 `current_stage` to the gate's `on_approve`, clear `pending_human_gate`, set
 `status: IN_PROGRESS` (or `COMPLETED`/`ARCHIVED` when entering those stages).
+Promote the gate's `required_artifacts` front-matter `status` to `APPROVED`.
+Then make the checkpoint commit and auto-resume `run` (`run-flow.md`) unless the
+resulting stage is `COMPLETED`/`ARCHIVED`.
 
 On `/so:reject`: set `status: REJECTED`, record the human `comment`, append a
 `history.jsonl` event (`verdict: "HUMAN_REJECTED"`), route to the gate's
-`on_reject`.
+`on_reject`, make the checkpoint commit, and auto-resume `run`.
 
 Auto Mode never bypasses a human gate.
 
@@ -243,7 +256,12 @@ Then append one line to `docs/workflow/history.jsonl`:
 {"timestamp":"<runtime>","story":"US-001","from_stage":"<old>","to_stage":"<new>","skill":"<skill-or-null>","verdict":"<verdict>","artifacts":[],"attempt":<n>}
 ```
 
-Preserve all prior history. Never rewrite `history.jsonl`.
+Preserve all prior history. Never rewrite `history.jsonl`. `timestamp` comes
+from the runtime clock (`date -u`), never composed by hand. `comment` is
+limited to ~300 characters; detail belongs in the artifact.
+
+Then perform the checkpoint commit (`references/git-checkpoint.md`) when the
+verdict is not `BLOCKED` and allowlisted files changed.
 
 Do not claim a transition occurred unless the state file was successfully
 written.
@@ -288,7 +306,7 @@ approved implementation changes via the routed Skill; invoke configured Skills;
 collect diagnostics; write `workflow-state.yaml` and append `history.jsonl`.
 
 Auto Mode must NOT: pass a human gate; resolve an Open Decision; accept security
-risk; modify requirements; push to a protected branch; merge or create a Pull
+risk; modify requirements; push to any branch; rebase, amend, or force-operate; merge or create a Pull
 Request; delete historical artifacts; archive an active Story; expose secrets;
 run destructive database operations.
 
@@ -305,7 +323,8 @@ Use IDEA MCP for project structure, semantic analysis, diagnostics, build, test
 execution, and schema inspection when a stage needs them.
 
 Use GitHub MCP only for reading source Issues, backlog synchronization, and
-branch/PR metadata. Never use write-capable remote tools before the current
+branch/PR metadata. Git write operations are limited to the story-branch
+creation in `start` and the checkpoint commits (`git-policy.yaml`). Never use write-capable remote tools before the current
 stage allows it.
 
 ---
@@ -373,10 +392,12 @@ transition unless `workflow-state.yaml` was updated.
 The Orchestrator must not: perform stage work; generate code, tests, specs,
 designs, or reviews; resolve Open Decisions; fabricate a successful result;
 overwrite a `CHANGES_REQUIRED`/`BLOCKED` artifact; skip a mandatory stage
-silently; pass a human gate; invoke multiple stage Skills per call; recurse to
-completion; run `archive` without an explicit request; delete historical
+silently; pass a human gate; invoke multiple stage Skills per `continue` call; recurse to
+completion outside `run` mode; run the `interactive` CLARIFICATION stage in a
+subagent; run `archive` without an explicit request; delete historical
 artifacts; bypass hooks; weaken permissions; expose secrets; stage or commit
-unrelated files; create or merge a Pull Request; mark a Story `COMPLETED`
+files outside the checkpoint allowlist; commit on `main` or on a branch other
+than the story branch; edit the harness on a story branch; create or merge a Pull Request; mark a Story `COMPLETED`
 without recorded human confirmation; treat chat history as workflow state;
 embed its own stage list or artifact paths.
 

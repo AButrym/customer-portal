@@ -16,6 +16,7 @@ All changes must be traceable to documented requirements and workflow artifacts.
 | Where every artifact lives and who owns it | `docs/workflow/artifact-paths.yaml` |
 | Status vocabularies (artifact status / review verdict / workflow status) | `docs/workflow/artifact-lifecycle.md` |
 | Workflow-state & active-story schema, history event schema | `docs/workflow/state-schema.md` |
+| Git policy: story branch, checkpoint commits, harness-maintenance flow | `docs/workflow/git-policy.yaml` |
 | Artifact front-matter schema | `docs/workflow/artifact-schema.md` |
 | Human-readable workflow overview (non-normative) | `docs/workflow/stages.md` |
 | Architecture decisions | `docs/architecture/architecture.md` |
@@ -113,11 +114,25 @@ a BCrypt hash and never returned by any API.
 
 # Git Policy
 
+Authoritative detail: `docs/workflow/git-policy.yaml`.
+
 - Generated changes stay scoped to the active Story. No opportunistic
   refactoring, no unrelated file edits.
-- Branch before committing when on the default branch.
-- Skills do not commit, push, create, or merge Pull Requests. `pr-preparer`
-  assembles the PR summary; a human creates the PR.
+- **Story branch:** `feature/{story_id}-{slug}` (e.g.
+  `feature/US-001-register-customer`), created from `main` by
+  `story-orchestrator` in `/so:start`. Never work a Story on `main`.
+- **Checkpoint commits:** after each recorded transition that changed files
+  (not for `BLOCKED`), `story-orchestrator` makes one local commit staging only
+  the stage's allowlisted files. Stage Skills never commit. Unexpected changed
+  files block the checkpoint.
+- Automation never pushes, rebases, amends, force-operates, creates, or merges
+  Pull Requests. `pr-preparer` assembles the PR summary; a human pushes and
+  creates the PR.
+- **Harness maintenance:** changes to the harness (`docs/workflow/**`,
+  `.claude/**`, `AGENTS.md`, `CLAUDE.md`, `docs/architecture/**`) are made on a
+  `chore/*` branch cut from `main`, merged into `main` by a human, after which
+  the human rebases the active story branches onto the updated `main`. Never
+  edit the harness on a story branch.
 - Generated database files, IDE-local config, and secrets never enter a
   commit.
 

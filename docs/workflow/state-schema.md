@@ -128,6 +128,10 @@ One JSON object per line, append-only. Owned by `story-orchestrator`
 }
 ```
 
+`timestamp` is the runtime clock (UTC), never hand-composed. `comment`, when
+present, is at most ~300 characters; detail lives in the artifacts. Checkpoint
+commits mirror these events (`docs/workflow/git-policy.yaml`).
+
 `verdict` in a history event is one of the review verdicts
 (`PASS` / `CHANGES_REQUIRED` / `BLOCKED` / `NOT_APPLICABLE`) or one of the
 lifecycle-event markers: `ACTIVATED` (Story activation, `from_stage: BACKLOG_SYNC`

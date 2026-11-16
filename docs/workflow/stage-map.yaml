@@ -21,6 +21,11 @@
 #                                surfaces blocking_issues
 #   verdict = NOT_APPLICABLE  -> only where `optional: true`; advances to `next`
 #
+# Execution modes (see story-orchestrator SKILL.md): `continue` / /so:next runs one
+# stage; `run` / /so:run chains stages, each in a fresh-context subagent, until a
+# human gate, BLOCKED, an `interactive` stage, or the loop-back budget is hit.
+# Neither mode changes routing: this file stays the only routing authority.
+#
 # Only story-orchestrator may record a transition (docs/workflow/workflow-state.yaml
 # + append docs/workflow/history.jsonl). Stage Skills never mutate workflow state.
 # =============================================================================
@@ -99,6 +104,8 @@ stages:
     inputs: [story]
     outputs: [clarification_report, open_decisions]
     next: SPECIFICATION
+    interactive: true      # needs a user interview: runs in the main session,
+                           # never in a subagent (run mode executes it inline)
     # PASS requires every Open Decision RESOLVED by an explicit user answer
     # collected in an interview (artifact-lifecycle.md section 4). Otherwise
     # BLOCKED. No decision is deferred to a later stage or to a human gate.
@@ -276,6 +283,8 @@ stages:
       plan_gap: IMPLEMENTATION_PLANNING
       design_gap: API_DESIGN
       specification_gap: SPECIFICATION
+      unresolved_decision: CLARIFICATION   # e.g. HUMAN_PR_APPROVAL rejection that
+                                           # requires open_decisions to be re-published
       story_source_conflict: BACKLOG_SYNC
 
   HUMAN_PR_APPROVAL:

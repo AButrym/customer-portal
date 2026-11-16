@@ -28,6 +28,9 @@ Requirements:
 - advance current_stage to the gate's `on_approve` target; clear
   pending_human_gate; set workflow status to IN_PROGRESS, or COMPLETED /
   ARCHIVED when entering those stages;
-- do not invoke any stage Skill;
+- promote the gate's required_artifacts front-matter status to APPROVED;
+- make the checkpoint commit (references/git-checkpoint.md);
+- then auto-resume run mode (references/run-flow.md) unless the resulting stage
+  is COMPLETED or ARCHIVED; the gate itself invokes no Skill;
 - do not create, push, or merge a Pull Request;
 - finish with the Orchestration Result.
