@@ -128,7 +128,9 @@ One JSON object per line, append-only. Owned by `story-orchestrator`
 }
 ```
 
-`timestamp` is the runtime clock (UTC), never hand-composed. `comment`, when
+Events are written only by `.claude/skills/story-orchestrator/scripts/record_transition.py`.
+`attempt` = occurrence number of `from_stage` in this story's history
+(non-`BLOCKED` events), computed by the script. `timestamp` is the runtime clock (UTC), never hand-composed. `comment`, when
 present, is at most ~300 characters; detail lives in the artifacts. Checkpoint
 commits mirror these events (`docs/workflow/git-policy.yaml`).
 

@@ -30,7 +30,8 @@ Repeat:
    registry path with the right `story`/version, and
    `git status --porcelain` shows no changes outside the allowlist
    (`git-policy.yaml`). Violation → `BLOCKED`, no transition.
-5. Apply the result and record the transition (`continue-flow.md` 7–8).
+5. Apply the result and record the transition (`continue-flow.md` 7–8); the
+   history line is appended with `scripts/record_transition.py`.
 6. Checkpoint commit (`git-checkpoint.md`).
 7. Go to 1.
 

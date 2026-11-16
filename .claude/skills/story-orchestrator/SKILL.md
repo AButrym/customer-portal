@@ -250,7 +250,13 @@ After a valid result, update `workflow-state.yaml` (per `state-schema.md`):
 - `started_at` (first automated stage), `updated_at` (always),
   `completed_at` / `archived_at` when reaching those stages.
 
-Then append one line to `docs/workflow/history.jsonl`:
+Then append the event to `docs/workflow/history.jsonl` **only through**
+`python .claude/skills/story-orchestrator/scripts/record_transition.py`
+(`--from --to --skill --verdict --artifact ... [--comment] [--decided-by]
+[--decision OD-001=A]`; `--dry-run` previews). It supplies the runtime
+timestamp and `attempt`, validates the transition against `stage-map.yaml`,
+and refuses on error (exit 2, nothing written). Never hand-edit or hand-append
+history lines. Resulting shape:
 
 ```json
 {"timestamp":"<runtime>","story":"US-001","from_stage":"<old>","to_stage":"<new>","skill":"<skill-or-null>","verdict":"<verdict>","artifacts":[],"attempt":<n>}
